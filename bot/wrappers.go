@@ -13,7 +13,7 @@ import (
 	"github.com/xnyo/ugr/models"
 )
 
-// CommandHandler is a function that accepts a Ctx as a parameter
+// CommandHandler is a F that accepts a Ctx as a parameter
 type CommandHandler func(c *common.Ctx)
 
 // privateOnly is a decorator that runs the telebot handler only if the message is a private message
@@ -118,22 +118,32 @@ func wrapCtxCallback(f CommandHandler) func(*tb.Callback) {
 	}
 }
 
-func base(f CommandHandler) func(*tb.Message) {
-	return wrapCtxMessage(
-		handleErrors(
-			privateOnly(
-				resolveUser(f),
-			),
-		),
-	)
+type Handler struct {
+	F CommandHandler
+	P privileges.Privileges
+	S string
 }
 
-func baseCallback(f CommandHandler) func(*tb.Callback) {
-	return wrapCtxCallback(
-		handleErrors(
-			privateOnly(
-				resolveUser(f),
-			),
-		),
-	)
+func (h Handler) wrap() {
+	if h.P > 0 {
+		h.F = protected(h.F, h.P)
+	}
+	if h.S != "" {
+		h.F = fsm(h.F, h.S)
+	}
+}
+
+func (h Handler) BaseWrap() func(*tb.Message) {
+	h.wrap()
+	return wrapCtxMessage(handleErrors(resolveUser(privateOnly(h.F))))
+}
+
+func (h Handler) BaseWrapCb() func(*tb.Callback) {
+	h.wrap()
+	return wrapCtxCallback(handleErrors(resolveUser(privateOnly(h.F))))
+}
+
+func (h Handler) TextWrap() func(*common.Ctx) {
+	h.wrap()
+	return h.F
 }

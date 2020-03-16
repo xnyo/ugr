@@ -41,10 +41,19 @@ var TextHandlers map[string]CommandHandler = make(map[string]CommandHandler)
 // Db is the gorm db reference
 var Db *gorm.DB
 
-func handleText(state string, f CommandHandler) {
+// HandleText registers a new raw text handler
+// The handler is a CommandHandler, so it already
+// has its Ctx already set. This is because
+// the raw dispatcher sets it (because it requires)
+// it as well, to determine the FSM status of the
+// current telegram user.
+func HandleText(state string, f CommandHandler) {
 	TextHandlers[state] = f
 }
 
+// notAvailable is a raw telebot handler that
+// responds to the callback query with a
+// "feature not available" message.
 func notAvailable(c *tb.Callback) {
 	B.Respond(c, &tb.CallbackResponse{
 		Text:      "😔 Funzionalità non ancora disponibile.",
@@ -87,44 +96,45 @@ func Start() {
 	defer Db.Close()
 	Db.AutoMigrate(models.All...)
 
-	// Register handlers
-	B.Handle("/start", base(commands.Start))
+	// Dummy handlers
+	B.Handle("/start", Handler{F: commands.Start}.BaseWrap())
 
 	// Admin handlers
-	B.Handle("/admin", base(protected(commands.AdminMenu, privileges.Admin)))
-	B.Handle("\fadmin", baseCallback(protected(commands.AdminMenu, privileges.Admin)))
+	B.Handle("/admin", Handler{F: commands.AdminMenu, P: privileges.Admin}.BaseWrap())
+	B.Handle("\fadmin", Handler{F: commands.AdminMenu, P: privileges.Admin}.BaseWrapCb())
 
 	// Admin callback queries
 	B.Handle(
-		"\fadmin__add_area", baseCallback(
-			protected(
-				fsm(
-					textPrompt(
-						"admin/add_area",
-						"Indica il nome della zona da aggiungere",
-						commands.AdminBackReplyMarkup,
-					),
-					"admin",
-				),
-				privileges.Admin,
+		"\fadmin__add_area",
+		Handler{
+			F: textPrompt(
+				"admin/add_area",
+				"Indica il nome della zona da aggiungere",
+				commands.AdminBackReplyMarkup,
 			),
-		),
+			P: privileges.Admin,
+			S: "admin",
+		}.BaseWrapCb(),
 	)
-	handleText("admin/add_area", protected(commands.AdminAddAreaName, privileges.Admin))
-	B.Handle("\fadmin__areas", baseCallback(protected(commands.AdminAreas, privileges.Admin)))
+	B.Handle("\fadmin__areas", Handler{F: commands.AdminAreas, P: privileges.Admin, S: "admin"}.BaseWrapCb())
 	B.Handle("\fadmin__add_admin", notAvailable)
 	B.Handle("\fadmin__remove_admin", notAvailable)
 	B.Handle("\fadmin__ban", notAvailable)
 	B.Handle("\fadmin__users", notAvailable)
 
-	// Text dispatcher
-	B.Handle(tb.OnText, base(func(c *common.Ctx) {
-		if v, ok := TextHandlers[c.DbUser.State]; ok {
-			v(c)
-		} else {
-			log.Printf("Unbound state %v in text dispatcher\n", c.DbUser.State)
-		}
-	}))
+	// Raw text dispatcher (multi-stage states)
+	B.Handle(tb.OnText, Handler{
+		F: func(c *common.Ctx) {
+			if v, ok := TextHandlers[c.DbUser.State]; ok {
+				v(c)
+			} else {
+				log.Printf("Unbound state %v in text dispatcher\n", c.DbUser.State)
+			}
+		},
+	}.BaseWrap())
+
+	// Raw text handlers
+	HandleText("admin/add_area", Handler{F: commands.AdminAddAreaName, P: privileges.Admin, S: "admin"}.TextWrap())
 
 	// Start the bot (blocks the current goroutine)
 	log.Println("UGR")
