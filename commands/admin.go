@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/xnyo/ugr/models"
@@ -84,4 +85,14 @@ func AdminAddAreaName(c *common.Ctx) {
 		Visible: true,
 	})
 	c.UpdateMenu("✅ **Zona aggiunta**", AdminBackReplyMarkup, tb.ModeMarkdown)
+}
+
+func AdminAreas(c *common.Ctx) {
+	s := "🌆 **Zone disponibili:**\n"
+	var results []models.Area
+	c.Db.Find(&results)
+	for _, v := range results {
+		s += fmt.Sprintf("\n🔸 %s", v.String())
+	}
+	c.UpdateMenu(s, AdminBackReplyMarkup, tb.ModeMarkdown)
 }

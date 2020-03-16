@@ -11,3 +11,7 @@ type Area struct {
 func (Area) TableName() string {
 	return "areas"
 }
+
+func (a Area) String() string {
+	return a.Name
+}

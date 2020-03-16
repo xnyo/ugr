@@ -45,6 +45,13 @@ func handleText(state string, f CommandHandler) {
 	TextHandlers[state] = f
 }
 
+func notAvailable(c *tb.Callback) {
+	B.Respond(c, &tb.CallbackResponse{
+		Text:      "😔 Funzionalità non ancora disponibile.",
+		ShowAlert: true,
+	})
+}
+
 // Initialize initizliaes the bot
 func Initialize(token string) error {
 	if B != nil {
@@ -104,6 +111,11 @@ func Start() {
 		),
 	)
 	handleText("admin/add_area", protected(commands.AdminAddAreaName, privileges.Admin))
+	B.Handle("\fadmin__areas", baseCallback(protected(commands.AdminAreas, privileges.Admin)))
+	B.Handle("\fadmin__add_admin", notAvailable)
+	B.Handle("\fadmin__remove_admin", notAvailable)
+	B.Handle("\fadmin__ban", notAvailable)
+	B.Handle("\fadmin__users", notAvailable)
 
 	// Text dispatcher
 	B.Handle(tb.OnText, base(func(c *common.Ctx) {
