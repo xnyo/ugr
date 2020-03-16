@@ -84,6 +84,24 @@ func protected(f CommandHandler, requiredPrivileges privileges.Privileges) Comma
 	}
 }
 
+func fsm(f CommandHandler, requiredState string) CommandHandler {
+	return func(c *common.Ctx) {
+		if c.DbUser.State != requiredState {
+			log.Printf("%v (%v) does not have the required state (%v) to trigger %v", c.DbUser.TelegramID, c.DbUser.State, requiredState, f)
+			return
+		}
+		f(c)
+	}
+}
+
+func textPrompt(newState string, message string, options ...interface{}) CommandHandler {
+	return func(c *common.Ctx) {
+		c.SetState(newState)
+		c.Answer()
+		c.UpdateMenu("✒️ "+message, options...)
+	}
+}
+
 // wrapCtxMessage converts a telebot message handler to a custom ugr handler (with ctx)
 func wrapCtxMessage(f CommandHandler) func(*tb.Message) {
 	return func(m *tb.Message) {
@@ -94,9 +112,9 @@ func wrapCtxMessage(f CommandHandler) func(*tb.Message) {
 
 // wrapCtxCallback converts a telebot message handler to a custom ugr callback handler (with ctx)
 func wrapCtxCallback(f CommandHandler) func(*tb.Callback) {
-	return func(q *tb.Callback) {
-		c := NewCtx(nil, q)
-		f(&c)
+	return func(c *tb.Callback) {
+		ctx := NewCtx(nil, c)
+		f(&ctx)
 	}
 }
 

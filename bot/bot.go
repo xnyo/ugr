@@ -35,8 +35,15 @@ func NewCtx(m *tb.Message, cb *tb.Callback) common.Ctx {
 // B is the telebot bot reference
 var B *tb.Bot
 
+// TextHandlers contains the handlers for tb.OnText
+var TextHandlers map[string]CommandHandler = make(map[string]CommandHandler)
+
 // Db is the gorm db reference
 var Db *gorm.DB
+
+func handleText(state string, f CommandHandler) {
+	TextHandlers[state] = f
+}
 
 // Initialize initizliaes the bot
 func Initialize(token string) error {
@@ -75,30 +82,37 @@ func Start() {
 
 	// Register handlers
 	B.Handle("/start", base(commands.Start))
-	/*B.Handle(
-		"/aggordine", base(
-			protected(commands.AdminNewOrder, privileges.AdminAddOrder),
-		),
-	)*/
+
+	// Admin handlers
+	B.Handle("/admin", base(protected(commands.AdminMenu, privileges.Admin)))
+	B.Handle("\fadmin", baseCallback(protected(commands.AdminMenu, privileges.Admin)))
+
+	// Admin callback queries
 	B.Handle(
-		"/admin", base(
-			protected(commands.AdminMenu, privileges.Admin),
+		"\fadmin__add_area", baseCallback(
+			protected(
+				fsm(
+					textPrompt(
+						"admin/add_area",
+						"Indica il nome della zona da aggiungere",
+						commands.AdminBackReplyMarkup,
+					),
+					"admin",
+				),
+				privileges.Admin,
+			),
 		),
 	)
-	B.Handle(
-		"/aggarea", base(
-			protected(commands.AdminNewArea, privileges.AdminAddArea),
-		),
-	)
-	B.Handle(
-		"\fTest", baseCallback(
-			protected(func(c *common.Ctx) {
-				c.Answer(&tb.CallbackResponse{
-					Text: "Ok!",
-				})
-			}, privileges.Admin),
-		),
-	)
+	handleText("admin/add_area", protected(commands.AdminAddAreaName, privileges.Admin))
+
+	// Text dispatcher
+	B.Handle(tb.OnText, base(func(c *common.Ctx) {
+		if v, ok := TextHandlers[c.DbUser.State]; ok {
+			v(c)
+		} else {
+			log.Printf("Unbound state %v in text dispatcher\n", c.DbUser.State)
+		}
+	}))
 
 	// Start the bot (blocks the current goroutine)
 	log.Println("UGR")
