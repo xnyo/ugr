@@ -101,8 +101,8 @@ func Start() {
 	B.Handle("/start", Handler{F: commands.Start}.BaseWrap())
 
 	// Admin handlers
-	B.Handle("/admin", Handler{F: admin.AdminMenu, P: privileges.Admin}.BaseWrap())
-	B.Handle("\fadmin", Handler{F: admin.AdminMenu, P: privileges.Admin}.BaseWrapCb())
+	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrap())
+	B.Handle("\fadmin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrapCb())
 
 	// Admin callback queries
 	B.Handle(
@@ -111,13 +111,13 @@ func Start() {
 			F: textPrompt(
 				"admin/add_area",
 				"Indica il nome della zona da aggiungere",
-				admin.AdminBackReplyMarkup,
+				admin.BackReplyMarkup,
 			),
 			P: privileges.Admin,
 			S: "admin",
 		}.BaseWrapCb(),
 	)
-	B.Handle("\fadmin__areas", Handler{F: admin.AdminAreas, P: privileges.Admin, S: "admin"}.BaseWrapCb())
+	B.Handle("\fadmin__areas", Handler{F: admin.Areas, P: privileges.Admin, S: "admin"}.BaseWrapCb())
 	B.Handle("\fadmin__add_admin", notAvailable)
 	B.Handle("\fadmin__remove_admin", notAvailable)
 	B.Handle("\fadmin__ban", notAvailable)
@@ -135,7 +135,7 @@ func Start() {
 	}.BaseWrap())
 
 	// Raw text handlers
-	HandleText("admin/add_area", Handler{F: admin.AdminAddAreaName, P: privileges.Admin, S: "admin"}.TextWrap())
+	HandleText("admin/add_area", Handler{F: admin.AddAreaName, P: privileges.Admin, S: "admin"}.TextWrap())
 
 	// Start the bot (blocks the current goroutine)
 	log.Println("UGR")

@@ -5,7 +5,10 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-var AdminBackReplyMarkup *tb.ReplyMarkup = &tb.ReplyMarkup{
+// BackReplyMarkup is a tb.ReplyMarkup with a
+// single "Main menu" button that goes to
+// the admin panel main menu
+var BackReplyMarkup *tb.ReplyMarkup = &tb.ReplyMarkup{
 	InlineKeyboard: [][]tb.InlineButton{
 		[]tb.InlineButton{
 			tb.InlineButton{
@@ -16,8 +19,8 @@ var AdminBackReplyMarkup *tb.ReplyMarkup = &tb.ReplyMarkup{
 	},
 }
 
-// AdminMenu send the admin menu as a reply
-func AdminMenu(c *common.Ctx) {
+// Menu send the admin menu as a reply
+func Menu(c *common.Ctx) {
 	c.SetState("admin")
 	c.UpdateMenu(
 		"🔧 **Menu amministratore**",
