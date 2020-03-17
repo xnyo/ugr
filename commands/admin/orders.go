@@ -14,15 +14,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-var endDataReplyKeyboardMarkup *tb.ReplyMarkup = &tb.ReplyMarkup{
-	ReplyKeyboard: [][]tb.ReplyButton{
-		[]tb.ReplyButton{
-			tb.ReplyButton{
-				Text: "Fine",
-			},
-		},
-	},
-}
+var endDataReplyKeyboardMarkup *tb.ReplyMarkup = common.SingleKeyboardFactory("Fine")
 
 // AddOrderData asks for all required data of the order that will be added
 func AddOrderData(c *common.Ctx) {
@@ -105,19 +97,22 @@ func AddOrderArea(c *common.Ctx) {
 		return
 	}
 
+	// Ok! Ask for expire
+	c.SetState("admin/add_order/expire")
+	c.UpdateMenu(
+		"✅⏰ **Ottimo!** Indica la scadenza di questo ordine. _Invia 'Nessuna scadenza' per non impostare una scadenza._",
+		common.SingleKeyboardFactory("Nessuna scadenza"),
+		tb.ModeMarkdown,
+	)
+}
+
+// AddOrderExpire adds an expiration date to the order
+func AddOrderExpire(c *common.Ctx) {
 	// Ok! Ask for photos
 	c.SetState("admin/add_order/attachments")
 	c.UpdateMenu(
 		"✅📷 **Ci siamo quasi!** Inviami ora eventuali foto da allegare. _Invia 'Fine' quando hai terminato di inviare gli allegati._",
-		&tb.ReplyMarkup{
-			ReplyKeyboard: [][]tb.ReplyButton{
-				[]tb.ReplyButton{
-					tb.ReplyButton{
-						Text: "Fine",
-					},
-				},
-			},
-		},
+		endDataReplyKeyboardMarkup,
 		tb.ModeMarkdown,
 	)
 }
