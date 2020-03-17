@@ -8,11 +8,6 @@ type Area struct {
 	Orders  []Order
 }
 
-// TableName returns the sql table name
-func (Area) TableName() string {
-	return "areas"
-}
-
 func (a Area) String() string {
 	return a.Name
 }

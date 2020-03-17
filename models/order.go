@@ -46,11 +46,6 @@ type Order struct {
 	Photos     []Photo
 }
 
-// TableName returns the sql table name
-func (Order) TableName() string {
-	return "orders"
-}
-
 // ToTelegram converts the current Order to a summary string
 // for the telegram bot
 func (o Order) ToTelegram(db *gorm.DB) (string, error) {
