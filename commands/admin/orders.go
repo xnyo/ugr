@@ -5,6 +5,7 @@ import (
 	"html"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/gorm"
 
@@ -15,6 +16,9 @@ import (
 )
 
 var endDataReplyKeyboardMarkup *tb.ReplyMarkup = common.SingleKeyboardFactory("Fine")
+var expireReplyKeyboardMarkup *tb.ReplyMarkup = common.SingleInlineKeyboardFactory(
+	tb.InlineButton{Text: "⛔️ Nessuna scadenza", Unique: "admin__add_order__no_expire"},
+)
 
 // AddOrderData asks for all required data of the order that will be added
 func AddOrderData(c *common.Ctx) {
@@ -101,7 +105,7 @@ func AddOrderArea(c *common.Ctx) {
 	c.SetState("admin/add_order/expire")
 	c.UpdateMenu(
 		"✅⏰ **Ottimo!** Indica la scadenza di questo ordine nel formato `gg/mm/aaaa hh:mm`",
-		common.SingleInlineKeyboardFactory(tb.InlineButton{Text: "⛔️ Nessuna scadenza", Unique: "admin__add_order__no_expire"}),
+		expireReplyKeyboardMarkup,
 		tb.ModeMarkdown,
 	)
 }
@@ -123,9 +127,24 @@ func AddOrderExpire(c *common.Ctx) {
 		c.SessionError(err, BackReplyMarkup)
 		return
 	}
-	msg := strings.TrimSpace(c.Message.Text)
-	if msg != "Nessuna scadenza" {
-
+	t, err := time.Parse("02/01/2006 15:04", c.Message.Text)
+	if err != nil {
+		// log.Printf("%v\n", err)
+		c.Reply(
+			"⚠️ **Formato scadenza non valido!** Deve essere del tipo `gg/mm/aaaa hh:mm`",
+			tb.ModeMarkdown,
+		)
+		return
+	}
+	if err := c.Db.Model(
+		&models.Order{},
+	).Where(
+		"id = ?", stateData.OrderID,
+	).Update(
+		"expire", &t,
+	).Error; err != nil {
+		c.SessionError(err, BackReplyMarkup)
+		return
 	}
 	expireDone(c)
 }

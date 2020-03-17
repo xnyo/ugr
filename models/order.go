@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/jinzhu/gorm"
 )
@@ -38,6 +39,7 @@ type Order struct {
 	Address    string
 	Telephone  string
 	AreaID     *uint
+	Expire     *time.Time
 	Status     OrderStatus `gorm:"default:0"`
 	AssignedTo User
 	Notes      *string `gorm:"size:512"`
@@ -63,12 +65,20 @@ func (o Order) ToTelegram(db *gorm.DB) (string, error) {
 		return "", err
 	}
 
+	var expire string
+	if o.Expire == nil {
+		expire = "Nessuna"
+	} else {
+		expire = o.Expire.Format("02/01/2006 15:04")
+	}
+
 	return fmt.Sprintf(
-		"🔸 Ordine per: %s\n🔸 Indirizzo: %s\n🔸 Zona: %s\n🔸 Telefono: %s\n🔸 Stato: %s\n🔸 Note:\n<code>%s</code>",
+		"🔸 Ordine per: %s\n🔸 Indirizzo: %s\n🔸 Zona: %s\n🔸 Telefono: %s\n🔸 Scadenza: %s\n🔸 Stato: %s\n🔸 Note:\n<code>%s</code>",
 		o.Name,
 		o.Address,
 		area.Name,
 		o.Telephone,
+		expire,
 		o.Status.String(),
 		notes,
 	), nil
