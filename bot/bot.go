@@ -21,15 +21,16 @@ import (
 )
 
 // NewCtx creates a new Ctx from a tb.Message pointer
-func NewCtx(m *tb.Message, cb *tb.Callback) common.Ctx {
+func NewCtx(m *tb.Message, cb *tb.Callback, q *tb.Query) common.Ctx {
 	if m == nil && cb != nil {
 		m = cb.Message
 	}
 	return common.Ctx{
-		B:        B,
-		Db:       Db,
-		Message:  m,
-		Callback: cb,
+		B:           B,
+		Db:          Db,
+		Message:     m,
+		Callback:    cb,
+		InlineQuery: q,
 	}
 }
 
@@ -184,6 +185,9 @@ note aggiuntive (anche più righe)</code>`,
 
 	// Admin -- raw photo handlers
 	HandlePhoto(Handler{F: admin.AddOrderAttachments, P: privileges.Normal, S: "admin/add_order/attachments"})
+
+	// Inline handler (admin)
+	B.Handle(tb.OnQuery, Handler{F: admin.InlineInviteHandler}.BaseWrapQ())
 
 	// Raw text dispatcher (multi-stage states)
 	B.Handle(tb.OnText, Handler{F: rawDispatch(TextHandlers)}.BaseWrap())

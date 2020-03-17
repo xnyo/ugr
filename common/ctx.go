@@ -11,17 +11,21 @@ import (
 
 // Ctx ...
 type Ctx struct {
-	Message  *tb.Message
-	Callback *tb.Callback
-	B        *tb.Bot
-	Db       *gorm.DB
-	DbUser   *models.User
+	Message     *tb.Message
+	Callback    *tb.Callback
+	InlineQuery *tb.Query
+	B           *tb.Bot
+	Db          *gorm.DB
+	DbUser      *models.User
 }
 
 // TelegramUser returns the user user who send the callback, or the user who sent the message
 func (c *Ctx) TelegramUser() *tb.User {
 	if c.Callback != nil {
 		return c.Callback.Sender
+	}
+	if c.InlineQuery != nil {
+		return &c.InlineQuery.From
 	}
 	return c.Message.Sender
 }

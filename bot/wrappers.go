@@ -105,7 +105,7 @@ func textPrompt(message string, newState string, options ...interface{}) Command
 // wrapCtxMessage converts a telebot message handler to a custom ugr handler (with ctx)
 func wrapCtxMessage(f CommandHandler) func(*tb.Message) {
 	return func(m *tb.Message) {
-		c := NewCtx(m, nil)
+		c := NewCtx(m, nil, nil)
 		f(&c)
 	}
 }
@@ -113,7 +113,15 @@ func wrapCtxMessage(f CommandHandler) func(*tb.Message) {
 // wrapCtxCallback converts a telebot message handler to a custom ugr callback handler (with ctx)
 func wrapCtxCallback(f CommandHandler) func(*tb.Callback) {
 	return func(c *tb.Callback) {
-		ctx := NewCtx(nil, c)
+		ctx := NewCtx(nil, c, nil)
+		f(&ctx)
+	}
+}
+
+// wrapCtxQuery converts a telebot message handler to a custom ugr Query handler (with ctx)
+func wrapCtxQuery(f CommandHandler) func(*tb.Query) {
+	return func(q *tb.Query) {
+		ctx := NewCtx(nil, nil, q)
 		f(&ctx)
 	}
 }
@@ -141,6 +149,11 @@ func (h Handler) BaseWrap() func(*tb.Message) {
 func (h Handler) BaseWrapCb() func(*tb.Callback) {
 	h.wrap()
 	return wrapCtxCallback(handleErrors(resolveUser(privateOnly(h.F))))
+}
+
+func (h Handler) BaseWrapQ() func(*tb.Query) {
+	h.wrap()
+	return wrapCtxQuery(handleErrors(resolveUser(h.F)))
 }
 
 func (h Handler) TextWrap() func(*common.Ctx) {
