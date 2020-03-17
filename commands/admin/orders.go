@@ -100,14 +100,13 @@ func AddOrderArea(c *common.Ctx) {
 	// Ok! Ask for expire
 	c.SetState("admin/add_order/expire")
 	c.UpdateMenu(
-		"✅⏰ **Ottimo!** Indica la scadenza di questo ordine. _Invia 'Nessuna scadenza' per non impostare una scadenza._",
-		common.SingleKeyboardFactory("Nessuna scadenza"),
+		"✅⏰ **Ottimo!** Indica la scadenza di questo ordine nel formato `gg/mm/aaaa hh:mm`",
+		common.SingleInlineKeyboardFactory(tb.InlineButton{Text: "⛔️ Nessuna scadenza", Unique: "admin__add_order__no_expire"}),
 		tb.ModeMarkdown,
 	)
 }
 
-// AddOrderExpire adds an expiration date to the order
-func AddOrderExpire(c *common.Ctx) {
+func expireDone(c *common.Ctx) {
 	// Ok! Ask for photos
 	c.SetState("admin/add_order/attachments")
 	c.UpdateMenu(
@@ -115,6 +114,28 @@ func AddOrderExpire(c *common.Ctx) {
 		endDataReplyKeyboardMarkup,
 		tb.ModeMarkdown,
 	)
+}
+
+// AddOrderExpire adds an expiration date to the order
+func AddOrderExpire(c *common.Ctx) {
+	var stateData statemodels.Order
+	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
+		c.SessionError(err, BackReplyMarkup)
+		return
+	}
+	msg := strings.TrimSpace(c.Message.Text)
+	if msg != "Nessuna scadenza" {
+
+	}
+	expireDone(c)
+}
+
+// AddOrderNoExpire does not add an expire to the current order and skips to the next section
+func AddOrderNoExpire(c *common.Ctx) {
+	c.Answer(&tb.CallbackResponse{
+		Text: "👍 Nessuna scadenza impostata",
+	})
+	expireDone(c)
 }
 
 // AddOrderAttachments processes incoming photos and saves them as attachments

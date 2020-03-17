@@ -164,11 +164,13 @@ note aggiuntive (anche più righe)</code>`,
 			S: "admin",
 		}.BaseWrapCb(),
 	)
+	B.Handle("\fadmin__add_order__no_expire", Handler{F: admin.AddOrderNoExpire, P: privileges.Normal, S: "admin/add_order/expire"}.BaseWrapCb())
 
 	// Admin -- raw text handlers (data input)
 	HandleText(Handler{F: admin.AddAreaName, P: privileges.Normal, S: "admin/add_area"})
 	HandleText(Handler{F: admin.AddOrderData, P: privileges.Normal, S: "admin/add_order"})
 	HandleText(Handler{F: admin.AddOrderArea, P: privileges.Normal, S: "admin/add_order/area"})
+	HandleText(Handler{F: admin.AddOrderExpire, P: privileges.Normal, S: "admin/add_order/expire"})
 	HandleText(Handler{F: admin.AddOrderAttachmentsEnd, P: privileges.Normal, S: "admin/add_order/attachments"})
 
 	// Admin -- raw photo handlers
