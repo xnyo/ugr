@@ -168,6 +168,7 @@ note aggiuntive (anche più righe)</code>`,
 	// Admin -- raw text handlers (data input)
 	HandleText(Handler{F: admin.AddAreaName, P: privileges.Normal, S: "admin/add_area"})
 	HandleText(Handler{F: admin.AddOrderData, P: privileges.Normal, S: "admin/add_order"})
+	HandleText(Handler{F: admin.AddOrderArea, P: privileges.Normal, S: "admin/add_order/area"})
 	HandleText(Handler{F: admin.AddOrderAttachmentsEnd, P: privileges.Normal, S: "admin/add_order/attachments"})
 
 	// Admin -- raw photo handlers

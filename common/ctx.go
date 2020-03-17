@@ -124,3 +124,16 @@ func (c *Ctx) SetStateData(data interface{}) {
 	}
 	c.DbUser.StateData = s
 }
+
+func (c *Ctx) SessionError(err error, replyMarkup *tb.ReplyMarkup) {
+	c.SetState("admin/error")
+	c.Reply("⚠️ **Si è verificato un errore nella sessione corrente**. Per favore, ricomincia.", replyMarkup, tb.ModeMarkdown)
+	// TODO: do before!!
+	c.HandleErr(err)
+}
+
+// HandleErr reports an error to sentry
+func (c *Ctx) HandleErr(err error) {
+	// TODO: Sentry
+	panic(err)
+}
