@@ -54,17 +54,21 @@ func (Order) TableName() string {
 // ToTelegram converts the current Order to a summary string
 // for the telegram bot
 func (o Order) ToTelegram(db *gorm.DB) (string, error) {
+	// Fetch area from db
+	var area Area
+	if err := db.Where("id = ?", o.AreaID).First(&area).Error; err != nil {
+		return "", err
+	}
+
+	// Format notes (nullable)
 	var notes string
 	if o.Notes == nil {
 		notes = "Nessuna"
 	} else {
 		notes = *o.Notes
 	}
-	var area Area
-	if err := db.Where("id = ?", o.AreaID).First(&area).Error; err != nil {
-		return "", err
-	}
 
+	// Fetch expire (nullable)
 	var expire string
 	if o.Expire == nil {
 		expire = "Nessuna"
@@ -72,6 +76,7 @@ func (o Order) ToTelegram(db *gorm.DB) (string, error) {
 		expire = o.Expire.Format("02/01/2006 15:04")
 	}
 
+	// Format string
 	return fmt.Sprintf(
 		"🔸 Ordine per: %s\n🔸 Indirizzo: %s\n🔸 Zona: %s\n🔸 Telefono: %s\n🔸 Scadenza: %s\n🔸 Stato: %s\n🔸 Note:\n<code>%s</code>",
 		o.Name,
