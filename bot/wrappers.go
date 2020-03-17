@@ -97,7 +97,7 @@ func fsm(f CommandHandler, requiredState string) CommandHandler {
 func textPrompt(message string, newState string, options ...interface{}) CommandHandler {
 	return func(c *common.Ctx) {
 		c.SetState(newState)
-		c.Answer()
+		c.Respond()
 		c.UpdateMenu("✒️ "+message, options...)
 	}
 }

@@ -151,7 +151,7 @@ func AddOrderExpire(c *common.Ctx) {
 
 // AddOrderNoExpire does not add an expire to the current order and skips to the next section
 func AddOrderNoExpire(c *common.Ctx) {
-	c.Answer(&tb.CallbackResponse{
+	c.Respond(&tb.CallbackResponse{
 		Text: "👍 Nessuna scadenza impostata",
 	})
 	expireDone(c)

@@ -123,6 +123,15 @@ func Start() {
 	// Admin -- menu
 	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Normal}.BaseWrap())
 	B.Handle("\fadmin", Handler{F: admin.Menu, P: privileges.Normal}.BaseWrapCb())
+	B.Handle(
+		"\fdelete_self",
+		Handler{
+			F: func(c *common.Ctx) {
+				c.Respond(&tb.CallbackResponse{Text: "👋 Arrivederci!"})
+				c.B.Delete(c.Message)
+			},
+		}.BaseWrapCb(),
+	)
 
 	// Admin -- areas
 	B.Handle(

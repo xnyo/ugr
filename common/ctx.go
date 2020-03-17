@@ -51,8 +51,8 @@ func (c *Ctx) UpdateMenu(what interface{}, options ...interface{}) (*tb.Message,
 	return msg, err
 }
 
-// Answer answers to the callback query held by the current ctx
-func (c *Ctx) Answer(r ...*tb.CallbackResponse) {
+// Respond responds to the callback query held by the current ctx
+func (c *Ctx) Respond(r ...*tb.CallbackResponse) {
 	c.B.Respond(c.Callback, r...)
 }
 
