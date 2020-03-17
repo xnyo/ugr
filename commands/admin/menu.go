@@ -5,23 +5,26 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+// BackReplyButton is the "back" button goes back to the
+// admin panel main menu
+var BackReplyButton tb.InlineButton = tb.InlineButton{
+	Unique: "admin",
+	Text:   "👈 Menu principale",
+}
+
 // BackReplyMarkup is a tb.ReplyMarkup with a
 // single "Main menu" button that goes to
 // the admin panel main menu
 var BackReplyMarkup *tb.ReplyMarkup = &tb.ReplyMarkup{
 	InlineKeyboard: [][]tb.InlineButton{
-		[]tb.InlineButton{
-			tb.InlineButton{
-				Unique: "admin",
-				Text:   "👈 Menu principale",
-			},
-		},
+		[]tb.InlineButton{BackReplyButton},
 	},
 }
 
 // Menu send the admin menu as a reply
 func Menu(c *common.Ctx) {
 	c.SetState("admin")
+	c.ClearStateData()
 	c.UpdateMenu(
 		"🔧 **Menu amministratore**",
 		&tb.ReplyMarkup{

@@ -39,6 +39,9 @@ var B *tb.Bot
 // TextHandlers contains the handlers for tb.OnText
 var TextHandlers map[string]CommandHandler = make(map[string]CommandHandler)
 
+// PhotoHandlers contains the handlers for tb.OnPhoto
+var PhotoHandlers map[string]CommandHandler = make(map[string]CommandHandler)
+
 // Db is the gorm db reference
 var Db *gorm.DB
 
@@ -50,6 +53,23 @@ var Db *gorm.DB
 // current telegram user.
 func HandleText(h Handler) {
 	TextHandlers[h.S] = h.TextWrap()
+}
+
+// HandlePhoto registers a new raw photo handler
+func HandlePhoto(h Handler) {
+	PhotoHandlers[h.S] = h.TextWrap()
+}
+
+// rawDispatch dispatches messages based on the state of the user
+// held by the current ctx, based on a provided dispatcher map
+func rawDispatch(dispatcher map[string]CommandHandler) CommandHandler {
+	return func(c *common.Ctx) {
+		if v, ok := dispatcher[c.DbUser.State]; ok {
+			v(c)
+		} else {
+			log.Printf("Unbound state %v in text dispatcher\n", c.DbUser.State)
+		}
+	}
 }
 
 // notAvailable is a raw telebot handler that
@@ -101,8 +121,8 @@ func Start() {
 	B.Handle("/start", Handler{F: commands.Start}.BaseWrap())
 
 	// Admin -- menu
-	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrap())
-	B.Handle("\fadmin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrapCb())
+	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Normal}.BaseWrap())
+	B.Handle("\fadmin", Handler{F: admin.Menu, P: privileges.Normal}.BaseWrapCb())
 
 	// Admin -- areas
 	B.Handle(
@@ -113,11 +133,11 @@ func Start() {
 				"admin/add_area",
 				admin.BackReplyMarkup,
 			),
-			P: privileges.Admin,
+			P: privileges.Normal,
 			S: "admin",
 		}.BaseWrapCb(),
 	)
-	B.Handle("\fadmin__areas", Handler{F: admin.Areas, P: privileges.Admin, S: "admin"}.BaseWrapCb())
+	B.Handle("\fadmin__areas", Handler{F: admin.Areas, P: privileges.Normal, S: "admin"}.BaseWrapCb())
 
 	// Admin -- TODO
 	B.Handle("\fadmin__add_admin", notAvailable)
@@ -135,32 +155,27 @@ func Start() {
 <code>cognome (e nome) destinatario
 indirizzo destinatario
 numero di telefono destinatario
-lista spesa prodotto 1
-lista spesa prodotto 2
-lista spesa prodotto 3...</code>`,
+note aggiuntive (anche più righe)</code>`,
 				"admin/add_order",
 				admin.BackReplyMarkup,
 				tb.ModeHTML,
 			),
-			P: privileges.Admin,
+			P: privileges.Normal,
 			S: "admin",
 		}.BaseWrapCb(),
 	)
 
 	// Admin -- raw text handlers (data input)
-	HandleText(Handler{F: admin.AddAreaName, P: privileges.Admin, S: "admin/add_area"})
-	HandleText(Handler{F: admin.AddOrderData, P: privileges.Admin, S: "admin/add_order"})
+	HandleText(Handler{F: admin.AddAreaName, P: privileges.Normal, S: "admin/add_area"})
+	HandleText(Handler{F: admin.AddOrderData, P: privileges.Normal, S: "admin/add_order"})
+	HandleText(Handler{F: admin.AddOrderAttachmentsEnd, P: privileges.Normal, S: "admin/add_order/attachments"})
+
+	// Admin -- raw photo handlers
+	HandlePhoto(Handler{F: admin.AddOrderAttachments, P: privileges.Normal, S: "admin/add_order/attachments"})
 
 	// Raw text dispatcher (multi-stage states)
-	B.Handle(tb.OnText, Handler{
-		F: func(c *common.Ctx) {
-			if v, ok := TextHandlers[c.DbUser.State]; ok {
-				v(c)
-			} else {
-				log.Printf("Unbound state %v in text dispatcher\n", c.DbUser.State)
-			}
-		},
-	}.BaseWrap())
+	B.Handle(tb.OnText, Handler{F: rawDispatch(TextHandlers)}.BaseWrap())
+	B.Handle(tb.OnPhoto, Handler{F: rawDispatch(PhotoHandlers)}.BaseWrap())
 
 	// Start the bot (blocks the current goroutine)
 	log.Println("UGR")

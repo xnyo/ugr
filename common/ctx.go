@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/jinzhu/gorm"
@@ -72,5 +73,54 @@ func (c *Ctx) Answer(r ...*tb.CallbackResponse) {
 // SetState updates the state of the user held by the current Ctx
 func (c *Ctx) SetState(newState string) {
 	log.Printf("%v's state -> %v", c.DbUser.TelegramID, newState)
-	c.Db.Model(c.DbUser).Update("state", newState)
+	if err := c.Db.Model(c.DbUser).Update("state", newState).Error; err != nil {
+		panic(err)
+	}
+}
+
+/* func (c *Ctx) AddStateData(key string, value interface{}) {
+	err := c.Db.Transaction(func(tx *gorm.DB) error {
+		var user *models.User
+		if err := tx.Where(c.DbUser).First(&user).Error; err != nil {
+			return err
+		}
+
+		stateData := make(map[string]interface{})
+		err := json.Unmarshal([]byte(user.StateData), stateData)
+		if err != nil {
+			panic(err)
+		}
+		stateData[key] = value
+		jsonData, err := json.Marshal(stateData)
+		if err != nil {
+			panic(err)
+		}
+		if err := tx.Model(&user).Update("state_data", string(jsonData)).Error; err != nil {
+			return err
+		}
+		c.DbUser = user
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+} */
+
+func (c *Ctx) ClearStateData() {
+	if err := c.Db.Model(&c.DbUser).Update("state_data", "{}").Error; err != nil {
+		panic(err)
+	}
+	c.DbUser.StateData = "{}"
+}
+
+func (c *Ctx) SetStateData(data interface{}) {
+	j, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	s := string(j)
+	if err := c.Db.Model(&c.DbUser).Update("state_data", s).Error; err != nil {
+		panic(err)
+	}
+	c.DbUser.StateData = s
 }

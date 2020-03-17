@@ -9,28 +9,24 @@ type OrderStatus uint8
 
 // Order statuses
 const (
-	OrderStatusPending OrderStatus = iota
-	OrderStatusPendingTaken
-	OrderStatusPendingDelivering
-	OrderStatusPendingDone
+	OrderStatusNeedsData OrderStatus = iota
+	OrderStatusPending
+	OrderStatusTaken
+	OrderStatusDelivering
+	OrderStatusDone
 )
 
 // Order represents an order
 type Order struct {
 	gorm.Model
-	Name        string
-	Address     string
-	Telephone   string
-	Area        Area
-	Status      OrderStatus
-	AssignedTo  User
-	GroceryList []Groceries
-}
-
-type Groceries struct {
-	Name    string
-	Done    bool
-	OrderID uint
+	Name       string
+	Address    string
+	Telephone  string
+	Area       *Area
+	Status     OrderStatus `gorm:"default:0"`
+	AssignedTo *User
+	Notes      *string `gorm:"size:512"`
+	Photos     []Photo
 }
 
 // TableName returns the sql table name

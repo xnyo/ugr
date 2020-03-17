@@ -11,6 +11,7 @@ type User struct {
 	TelegramID     int `gorm:"primary_key"`
 	Privileges     privileges.Privileges
 	State          string
+	StateData      string `gorm:"size:512" gorm:"default:'{}'"`
 	LatestBotMsgID int
 }
 
