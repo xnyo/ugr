@@ -18,12 +18,19 @@ const (
 // Order represents an order
 type Order struct {
 	gorm.Model
-	Name       string
-	Address    string
-	Telephone  string
-	Area       Area
-	Status     OrderStatus
-	AssignedTo User
+	Name        string
+	Address     string
+	Telephone   string
+	Area        Area
+	Status      OrderStatus
+	AssignedTo  User
+	GroceryList []Groceries
+}
+
+type Groceries struct {
+	Name    string
+	Done    bool
+	OrderID uint
 }
 
 // TableName returns the sql table name

@@ -9,7 +9,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-// AddAreaName asks for the name of the area to be added
+// AddAreaName asks for the name of the area that will be added
 func AddAreaName(c *common.Ctx) {
 	if strings.ContainsRune(c.Message.Text, '\n') {
 		c.Reply("⚠️ **Il nome della zona deve essere contenuto in una sola riga.**", tb.ModeMarkdown)

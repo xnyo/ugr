@@ -48,8 +48,8 @@ var Db *gorm.DB
 // the raw dispatcher sets it (because it requires)
 // it as well, to determine the FSM status of the
 // current telegram user.
-func HandleText(state string, f CommandHandler) {
-	TextHandlers[state] = f
+func HandleText(h Handler) {
+	TextHandlers[h.S] = h.TextWrap()
 }
 
 // notAvailable is a raw telebot handler that
@@ -100,17 +100,17 @@ func Start() {
 	// Dummy handlers
 	B.Handle("/start", Handler{F: commands.Start}.BaseWrap())
 
-	// Admin handlers
+	// Admin -- menu
 	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrap())
 	B.Handle("\fadmin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrapCb())
 
-	// Admin callback queries
+	// Admin -- areas
 	B.Handle(
 		"\fadmin__add_area",
 		Handler{
 			F: textPrompt(
-				"admin/add_area",
 				"Indica il nome della zona da aggiungere",
+				"admin/add_area",
 				admin.BackReplyMarkup,
 			),
 			P: privileges.Admin,
@@ -118,10 +118,38 @@ func Start() {
 		}.BaseWrapCb(),
 	)
 	B.Handle("\fadmin__areas", Handler{F: admin.Areas, P: privileges.Admin, S: "admin"}.BaseWrapCb())
+
+	// Admin -- TODO
 	B.Handle("\fadmin__add_admin", notAvailable)
 	B.Handle("\fadmin__remove_admin", notAvailable)
 	B.Handle("\fadmin__ban", notAvailable)
 	B.Handle("\fadmin__users", notAvailable)
+
+	// Admin -- orders
+	B.Handle(
+		"\fadmin__add_order",
+		Handler{
+			F: textPrompt(
+				`<b>Invia un messaggio con i seguenti dati, uno per riga:</b>
+
+<code>cognome (e nome) destinatario
+indirizzo destinatario
+numero di telefono destinatario
+lista spesa prodotto 1
+lista spesa prodotto 2
+lista spesa prodotto 3...</code>`,
+				"admin/add_order",
+				admin.BackReplyMarkup,
+				tb.ModeHTML,
+			),
+			P: privileges.Admin,
+			S: "admin",
+		}.BaseWrapCb(),
+	)
+
+	// Admin -- raw text handlers (data input)
+	HandleText(Handler{F: admin.AddAreaName, P: privileges.Admin, S: "admin/add_area"})
+	HandleText(Handler{F: admin.AddOrderData, P: privileges.Admin, S: "admin/add_order"})
 
 	// Raw text dispatcher (multi-stage states)
 	B.Handle(tb.OnText, Handler{
@@ -133,9 +161,6 @@ func Start() {
 			}
 		},
 	}.BaseWrap())
-
-	// Raw text handlers
-	HandleText("admin/add_area", Handler{F: admin.AddAreaName, P: privileges.Admin, S: "admin"}.TextWrap())
 
 	// Start the bot (blocks the current goroutine)
 	log.Println("UGR")
