@@ -18,14 +18,6 @@ type Ctx struct {
 	DbUser   *models.User
 }
 
-// IsCallback returns True if the current Ctx holds a callback and returns False if it holds a message
-func (c *Ctx) IsCallback() bool {
-	if c.Callback == nil && c.Message == nil {
-		panic("this ctx does not hold anything!")
-	}
-	return c.Callback != nil
-}
-
 // TelegramUser returns the user user who send the callback, or the user who sent the message
 func (c *Ctx) TelegramUser() *tb.User {
 	if c.Callback != nil {
@@ -37,12 +29,6 @@ func (c *Ctx) TelegramUser() *tb.User {
 // Reply replies to the message held by the current Ctx.
 // This works both with callbacks and normal messages.
 func (c *Ctx) Reply(what interface{}, options ...interface{}) (*tb.Message, error) {
-	/*var message *tb.Message
-	if c.IsCallback() {
-		message = c.Callback.Message
-	} else {
-		message = c.Message
-	}*/
 	return c.B.Send(c.TelegramUser(), what, options...)
 }
 
