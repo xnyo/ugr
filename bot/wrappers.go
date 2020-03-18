@@ -6,6 +6,8 @@ import (
 	"log"
 	"runtime/debug"
 
+	"github.com/jinzhu/gorm"
+
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/privileges"
 	"github.com/xnyo/ugr/text"
@@ -35,21 +37,18 @@ func resolveUser(f CommandHandler) CommandHandler {
 	return func(c *common.Ctx) {
 		var user models.User
 
-		// Try to get user from db.
-		// If it does not exist, a new user with default privileges is created
-		if result := c.Db.Where(models.User{
+		// Try to get user from db
+		if err := c.Db.Where(models.User{
 			TelegramID: c.TelegramUser().ID,
-		}).Attrs(models.User{
-			TelegramID: c.TelegramUser().ID,
-			Privileges: privileges.Normal,
-		}).FirstOrCreate(&user); result.Error != nil {
-			panic(result.Error)
+		}).First(&user).Error; err != nil && err != gorm.ErrRecordNotFound {
+			panic(err)
+		} else {
+			c.DbUser = &user
 		}
-		c.DbUser = &user
 
-		// Ban check
-		if user.Privileges&privileges.Normal == 0 {
-			c.Reply("Non hai i permessi necessari per utilizzare questo bot.")
+		// Exist and ban check
+		if c.DbUser != nil && c.DbUser.Privileges&privileges.Normal == 0 {
+			c.Report("Non hai i permessi necessari per utilizzare questo bot.")
 			return
 		}
 
@@ -57,12 +56,10 @@ func resolveUser(f CommandHandler) CommandHandler {
 	}
 }
 
-// handleErrorsBase is the base error handler.
+// handleErrors is the base error handler.
 // it recovers from any panic, logs the stack to stdout
-// and calls a custom handler (h), which can be used to
-// report feedback to the user, for example by sending
-// them a message or answering to their callback query
-func handleErrorsBase(f CommandHandler, h func(*common.Ctx, error)) CommandHandler {
+// and reports feedback to the user
+func handleErrors(f CommandHandler) CommandHandler {
 	return func(c *common.Ctx) {
 		defer func() {
 			if rec := recover(); rec != nil {
@@ -77,43 +74,29 @@ func handleErrorsBase(f CommandHandler, h func(*common.Ctx, error)) CommandHandl
 					err = fmt.Errorf("%v - %#v", rec, rec)
 				}
 				log.Printf("ERROR !!!\n%v\n%s", err, string(debug.Stack()))
-				h(c, err)
+				c.Report(text.ErrorOccurred)
 			}
 		}()
 		f(c)
 	}
 }
 
-// handleErrors returns the base error handler
-// with a custom handler that sends a message
-// to the user if an error occurs
-func handleErrors(f CommandHandler) CommandHandler {
-	return handleErrorsBase(
-		f,
-		func(c *common.Ctx, err error) {
-			c.Reply(text.ErrorOccurred)
-		},
-	)
-}
-
-// handleErrorsCb returns the base error handler
-// with a custom handler that responds to the
-// callback query with an erro message if an error occurs
-func handleErrorsCb(f CommandHandler) CommandHandler {
-	return handleErrorsBase(
-		f,
-		func(c *common.Ctx, err error) {
-			c.Respond(&tb.CallbackResponse{Text: text.ErrorOccurred, ShowAlert: true})
-		},
-	)
-}
-
 // protected runs the handler only if the user has at least the
 // specified privileges, otherwise it does nothing
 func protected(f CommandHandler, requiredPrivileges privileges.Privileges) CommandHandler {
 	return func(c *common.Ctx) {
-		if c.DbUser.Privileges&requiredPrivileges == 0 {
+		if c.DbUser == nil || c.DbUser.Privileges&requiredPrivileges == 0 {
 			log.Printf("%v (%v) does not have the required privileges (%v) to trigger %v", c.DbUser.TelegramID, c.DbUser.Privileges, requiredPrivileges, f)
+			return
+		}
+		f(c)
+	}
+}
+
+func guestsOnly(f CommandHandler, requiredPrivileges privileges.Privileges) CommandHandler {
+	return func(c *common.Ctx) {
+		if c.DbUser != nil {
+			log.Printf("%v tried to trigger guest-only handler %v", c.DbUser.TelegramID, f)
 			return
 		}
 		f(c)
@@ -172,6 +155,7 @@ type Handler struct {
 
 	// If not zero, add a protected() decorator
 	// with the provided privileges
+	// Set to -1 to allow this only for guests
 	P privileges.Privileges
 
 	// If not zero, add a fsm() decorator
@@ -182,6 +166,8 @@ type Handler struct {
 func (h Handler) wrap() {
 	if h.P > 0 {
 		h.F = protected(h.F, h.P)
+	} else if h.P <= 0 {
+		h.F = guestsOnly(h.F, h.P)
 	}
 	if h.S != "" {
 		h.F = fsm(h.F, h.S)
@@ -195,7 +181,7 @@ func (h Handler) BaseWrap() func(*tb.Message) {
 
 func (h Handler) BaseWrapCb() func(*tb.Callback) {
 	h.wrap()
-	return wrapCtxCallback(handleErrorsCb(resolveUser(h.F)))
+	return wrapCtxCallback(handleErrors(resolveUser(h.F)))
 }
 
 func (h Handler) BaseWrapQ() func(*tb.Query) {

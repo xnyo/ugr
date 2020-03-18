@@ -3,11 +3,36 @@ package commands
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/xnyo/ugr/common"
+	"github.com/xnyo/ugr/models"
 	"github.com/xnyo/ugr/privileges"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 func handleInvite(c *common.Ctx, p privileges.Privileges) {
+	// Register the user if necessary
+	var new bool
+	if c.DbUser == nil {
+		// We use this instead of always adding
+		// so we avoid duplicate primary key errors
+		// in case of concurrency
+		if err := c.Db.Model(&models.User{
+			TelegramID: c.TelegramUser().ID,
+		}).Attrs(&models.User{
+			TelegramID: c.TelegramUser().ID,
+			Privileges: privileges.Normal,
+		}).FirstOrCreate(c.DbUser).Error; err != nil {
+			c.RespondSessionError(err)
+			return
+		}
+		new = true
+	}
+
+	// Normal privileges, no need to update privileges on new records
+	if new && p == privileges.Normal {
+		return
+	}
+
+	// Extra privileges needed, update privileges
 	if err := c.Db.Model(&c.DbUser).Update("privileges", gorm.Expr("privileges | ?", p)).Error; err != nil {
 		c.RespondSessionError(err)
 		return

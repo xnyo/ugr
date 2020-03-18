@@ -12,7 +12,7 @@ func unauthorizedHandler(c *common.Ctx) {
 			Title: text.Unauthorized,
 		},
 	}
-	results[0].SetResultID("unauthorized")
+	results[0].SetResultID("unauthorized_" + string(c.TelegramUser().ID))
 	results[0].SetContent(&tb.InputTextMessageContent{Text: "⛔️🙅‍♂️🍆"})
 	err := c.B.Answer(c.InlineQuery, &tb.QueryResponse{Results: results})
 	if err != nil {

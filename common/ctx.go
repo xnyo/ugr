@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
 	"github.com/jinzhu/gorm"
@@ -35,6 +36,35 @@ func (c *Ctx) TelegramUser() *tb.User {
 // This works both with callbacks and normal messages.
 func (c *Ctx) Reply(what interface{}, options ...interface{}) (*tb.Message, error) {
 	return c.B.Send(c.TelegramUser(), what, options...)
+}
+
+// Report reports a message to the user, in the most appropriate form
+// based on the current ctx.
+// - If the ctx holds a callback query, it sends a callback response
+// - If the ctx holds an inline query, it sends a query result
+// - If the ctx holds a message, it sends a message
+func (c *Ctx) Report(text string) {
+	if c.Callback != nil {
+		// Callback query
+		c.Respond(&tb.CallbackResponse{
+			ShowAlert: true,
+			Text:      text,
+		})
+	} else if c.InlineQuery != nil {
+		// Inline query
+		results := tb.Results{
+			&tb.ArticleResult{
+				Title: text,
+			},
+		}
+		// Make sure the id is unique
+		results[0].SetResultID(fmt.Sprintf("%s_%s", GetMD5Hash(text), string(c.TelegramUser().ID)))
+		results[0].SetContent(&tb.InputTextMessageContent{Text: "⛔"})
+		c.B.Answer(c.InlineQuery, &tb.QueryResponse{Results: results})
+	} else {
+		// Message
+		c.Reply(text)
+	}
 }
 
 // UpdateMenu updates a callback-based menu by deleting the message

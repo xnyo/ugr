@@ -3,6 +3,9 @@ package privileges
 // Privileges represents the privileges that a given telegram user has on the bot
 type Privileges int
 
+// Guest special privileges (can't be used as a flag!)
+const Guest Privileges = -1
+
 // User privilege constants
 const (
 	// Can use volunteer features
