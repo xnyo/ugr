@@ -8,6 +8,7 @@ import (
 
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/privileges"
+	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
 
 	"github.com/xnyo/ugr/models"
@@ -26,6 +27,10 @@ func privateOnly(f CommandHandler) CommandHandler {
 	}
 }
 
+// resolveUser populates c.DbUser with the models.User
+// that corresponds to c.TelegramUser() (user sending
+// the message, sending the cb query or the inline
+// query request)
 func resolveUser(f CommandHandler) CommandHandler {
 	return func(c *common.Ctx) {
 		var user models.User
@@ -52,7 +57,12 @@ func resolveUser(f CommandHandler) CommandHandler {
 	}
 }
 
-func handleErrors(f CommandHandler) CommandHandler {
+// handleErrorsBase is the base error handler.
+// it recovers from any panic, logs the stack to stdout
+// and calls a custom handler (h), which can be used to
+// report feedback to the user, for example by sending
+// them a message or answering to their callback query
+func handleErrorsBase(f CommandHandler, h func(*common.Ctx, error)) CommandHandler {
 	return func(c *common.Ctx) {
 		defer func() {
 			if rec := recover(); rec != nil {
@@ -67,13 +77,39 @@ func handleErrors(f CommandHandler) CommandHandler {
 					err = fmt.Errorf("%v - %#v", rec, rec)
 				}
 				log.Printf("ERROR !!!\n%v\n%s", err, string(debug.Stack()))
-				c.Reply("Si è verificato un errore.")
+				h(c, err)
 			}
 		}()
 		f(c)
 	}
 }
 
+// handleErrors returns the base error handler
+// with a custom handler that sends a message
+// to the user if an error occurs
+func handleErrors(f CommandHandler) CommandHandler {
+	return handleErrorsBase(
+		f,
+		func(c *common.Ctx, err error) {
+			c.Reply(text.ErrorOccurred)
+		},
+	)
+}
+
+// handleErrorsCb returns the base error handler
+// with a custom handler that responds to the
+// callback query with an erro message if an error occurs
+func handleErrorsCb(f CommandHandler) CommandHandler {
+	return handleErrorsBase(
+		f,
+		func(c *common.Ctx, err error) {
+			c.Respond(&tb.CallbackResponse{Text: text.ErrorOccurred, ShowAlert: true})
+		},
+	)
+}
+
+// protected runs the handler only if the user has at least the
+// specified privileges, otherwise it does nothing
 func protected(f CommandHandler, requiredPrivileges privileges.Privileges) CommandHandler {
 	return func(c *common.Ctx) {
 		if c.DbUser.Privileges&requiredPrivileges == 0 {
@@ -84,6 +120,8 @@ func protected(f CommandHandler, requiredPrivileges privileges.Privileges) Comma
 	}
 }
 
+// fsm runs the handler only if the user is in the specified
+// state, otherwise it does nothing
 func fsm(f CommandHandler, requiredState string) CommandHandler {
 	return func(c *common.Ctx) {
 		if c.DbUser.State != requiredState {
@@ -126,9 +164,18 @@ func wrapCtxQuery(f CommandHandler) func(*tb.Query) {
 	}
 }
 
+// Handler is a telegram handler
 type Handler struct {
+	// Function to run.
+	// Must be wrapped with BaseWrap, BaseWrapCb, etc
 	F CommandHandler
+
+	// If not zero, add a protected() decorator
+	// with the provided privileges
 	P privileges.Privileges
+
+	// If not zero, add a fsm() decorator
+	// with the provided state
 	S string
 }
 
@@ -148,7 +195,7 @@ func (h Handler) BaseWrap() func(*tb.Message) {
 
 func (h Handler) BaseWrapCb() func(*tb.Callback) {
 	h.wrap()
-	return wrapCtxCallback(handleErrors(resolveUser(privateOnly(h.F))))
+	return wrapCtxCallback(handleErrorsCb(resolveUser(h.F)))
 }
 
 func (h Handler) BaseWrapQ() func(*tb.Query) {

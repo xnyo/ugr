@@ -6,6 +6,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/xnyo/ugr/models"
+	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -115,11 +116,22 @@ func (c *Ctx) SetStateData(data interface{}) {
 	c.DbUser.StateData = s
 }
 
-func (c *Ctx) SessionError(err error, replyMarkup *tb.ReplyMarkup) {
-	c.SetState("admin/error")
-	c.Reply("⚠️ **Si è verificato un errore nella sessione corrente**. Per favore, ricomincia.", replyMarkup, tb.ModeMarkdown)
-	// TODO: do before!!
+func sessionError(c *Ctx, err error) {
+	c.SetState("error")
 	c.HandleErr(err)
+}
+
+func (c *Ctx) SessionError(err error, replyMarkup *tb.ReplyMarkup) {
+	sessionError(c, err)
+	c.Reply(text.SessionError, replyMarkup, tb.ModeMarkdown)
+}
+
+func (c *Ctx) RespondSessionError(err error) {
+	sessionError(c, err)
+	c.Respond(&tb.CallbackResponse{
+		Text:      text.SessionError,
+		ShowAlert: true,
+	})
 }
 
 // HandleErr reports an error to sentry

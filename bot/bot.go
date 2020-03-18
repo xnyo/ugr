@@ -116,6 +116,7 @@ func Start() {
 		log.Fatal(err)
 	}
 	defer Db.Close()
+	Db.LogMode(true)
 	Db.AutoMigrate(models.All...)
 
 	// Dummy handlers
@@ -175,6 +176,10 @@ note aggiuntive (anche più righe)</code>`,
 		}.BaseWrapCb(),
 	)
 	B.Handle("\fadmin__add_order__no_expire", Handler{F: admin.AddOrderNoExpire, P: privileges.Normal, S: "admin/add_order/expire"}.BaseWrapCb())
+
+	// Invite response
+	B.Handle("\faccept_admin", Handler{F: commands.AcceptAdminInvite}.BaseWrapCb())
+	B.Handle("\faccept_volunteer", Handler{F: commands.AcceptVolunteerInvite}.BaseWrapCb())
 
 	// Admin -- raw text handlers (data input)
 	HandleText(Handler{F: admin.AddAreaName, P: privileges.Normal, S: "admin/add_area"})
