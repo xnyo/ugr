@@ -6,13 +6,14 @@ import (
 
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/models"
+	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
 // AddAreaName asks for the name of the area that will be added
 func AddAreaName(c *common.Ctx) {
 	if strings.ContainsRune(c.Message.Text, '\n') {
-		c.Reply("⚠️ **Il nome della zona deve essere contenuto in una sola riga.**", tb.ModeMarkdown)
+		c.Reply(text.W("Il nome della zona deve essere contenuto in una sola riga."), tb.ModeMarkdown)
 		return
 	}
 	s := strings.TrimSpace(c.Message.Text)

@@ -33,7 +33,7 @@ func TakeOrderZone(c *common.Ctx) {
 		return
 	}
 	if area == nil {
-		c.Reply(text.W("L'area specificata non esiste"))
+		c.Reply(text.W("L'area specificata non esiste"), tb.ModeMarkdown)
 		return
 	}
 

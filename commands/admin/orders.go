@@ -10,6 +10,7 @@ import (
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/models"
 	"github.com/xnyo/ugr/statemodels"
+	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -23,7 +24,7 @@ func AddOrderData(c *common.Ctx) {
 	parts := strings.SplitN(c.Message.Text, "\n", 4)
 	l := len(parts)
 	if l < 3 {
-		c.Reply("⚠️ **Non hai specificato tutti i dati richiesti!**", tb.ModeMarkdown)
+		c.Reply(text.W("Non hai specificato tutti i dati richiesti!"), tb.ModeMarkdown)
 		return
 	}
 	var notes *string
@@ -72,7 +73,7 @@ func AddOrderArea(c *common.Ctx) {
 
 	areaName := strings.TrimSpace(c.Message.Text)
 	if len(areaName) == 0 {
-		c.Reply("⚠️ **Nome area non valido!**", tb.ModeMarkdown)
+		c.Reply(text.W("Nome area non valido!"), tb.ModeMarkdown)
 		return
 	}
 
@@ -82,7 +83,7 @@ func AddOrderArea(c *common.Ctx) {
 		c.SessionError(err, BackReplyMarkup)
 	}
 	if area == nil {
-		c.Reply("⚠️ Non ho trovato nessuna area con quel nome.", tb.ModeMarkdown)
+		c.Reply(text.W("Non ho trovato nessuna area con quel nome."), tb.ModeMarkdown)
 	}
 
 	// Update order.area
@@ -121,7 +122,7 @@ func AddOrderExpire(c *common.Ctx) {
 	if err != nil {
 		// log.Printf("%v\n", err)
 		c.Reply(
-			"⚠️ **Formato scadenza non valido!** Deve essere del tipo `gg/mm/aaaa hh:mm`",
+			text.W("Formato scadenza non valido!** Deve essere del tipo `gg/mm/aaaa hh:mm`"),
 			tb.ModeMarkdown,
 		)
 		return
@@ -150,7 +151,7 @@ func AddOrderNoExpire(c *common.Ctx) {
 // AddOrderAttachments processes incoming photos and saves them as attachments
 func AddOrderAttachments(c *common.Ctx) {
 	if c.Message.Photo == nil {
-		c.Reply("⚠️ **Per favore invia una foto**", tb.ModeMarkdown)
+		c.Reply(text.W("Per favore invia una foto"), tb.ModeMarkdown)
 		return
 	}
 	var stateData statemodels.Order
