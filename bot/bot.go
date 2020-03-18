@@ -121,10 +121,11 @@ func Start() {
 
 	// Dummy handlers
 	B.Handle("/start", Handler{F: commands.Start, P: privileges.Normal}.BaseWrap())
+	B.Handle("\fstart", Handler{F: commands.Start, P: privileges.Normal}.BaseWrapCb())
 
 	// Admin -- menu
-	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Normal}.BaseWrap())
-	B.Handle("\fadmin", Handler{F: admin.Menu, P: privileges.Normal}.BaseWrapCb())
+	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrap())
+	B.Handle("\fadmin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrapCb())
 	B.Handle(
 		"\fdelete_self",
 		Handler{
@@ -144,11 +145,11 @@ func Start() {
 				"admin/add_area",
 				admin.BackReplyMarkup,
 			),
-			P: privileges.Normal,
+			P: privileges.Admin,
 			S: "admin",
 		}.BaseWrapCb(),
 	)
-	B.Handle("\fadmin__areas", Handler{F: admin.Areas, P: privileges.Normal, S: "admin"}.BaseWrapCb())
+	B.Handle("\fadmin__areas", Handler{F: admin.Areas, P: privileges.Admin, S: "admin"}.BaseWrapCb())
 
 	// Admin -- TODO
 	B.Handle("\fadmin__add_admin", notAvailable)
@@ -171,27 +172,27 @@ note aggiuntive (anche più righe)</code>`,
 				admin.BackReplyMarkup,
 				tb.ModeHTML,
 			),
-			P: privileges.Normal,
+			P: privileges.Admin,
 			S: "admin",
 		}.BaseWrapCb(),
 	)
-	B.Handle("\fadmin__add_order__no_expire", Handler{F: admin.AddOrderNoExpire, P: privileges.Normal, S: "admin/add_order/expire"}.BaseWrapCb())
+	B.Handle("\fadmin__add_order__no_expire", Handler{F: admin.AddOrderNoExpire, P: privileges.Admin, S: "admin/add_order/expire"}.BaseWrapCb())
 
 	// Invite response
 	B.Handle("\faccept_admin", Handler{F: commands.AcceptAdminInvite}.BaseWrapCb())
 	B.Handle("\faccept_volunteer", Handler{F: commands.AcceptVolunteerInvite}.BaseWrapCb())
 
 	// Admin -- raw text handlers (data input)
-	HandleText(Handler{F: admin.AddAreaName, P: privileges.Normal, S: "admin/add_area"})
-	HandleText(Handler{F: admin.AddOrderData, P: privileges.Normal, S: "admin/add_order"})
-	HandleText(Handler{F: admin.AddOrderArea, P: privileges.Normal, S: "admin/add_order/area"})
-	HandleText(Handler{F: admin.AddOrderExpire, P: privileges.Normal, S: "admin/add_order/expire"})
-	HandleText(Handler{F: admin.AddOrderAttachmentsEnd, P: privileges.Normal, S: "admin/add_order/attachments"})
+	HandleText(Handler{F: admin.AddAreaName, P: privileges.Admin, S: "admin/add_area"})
+	HandleText(Handler{F: admin.AddOrderData, P: privileges.Admin, S: "admin/add_order"})
+	HandleText(Handler{F: admin.AddOrderArea, P: privileges.Admin, S: "admin/add_order/area"})
+	HandleText(Handler{F: admin.AddOrderExpire, P: privileges.Admin, S: "admin/add_order/expire"})
+	HandleText(Handler{F: admin.AddOrderAttachmentsEnd, P: privileges.Admin, S: "admin/add_order/attachments"})
 
 	// Admin -- raw photo handlers
-	HandlePhoto(Handler{F: admin.AddOrderAttachments, P: privileges.Normal, S: "admin/add_order/attachments"})
+	HandlePhoto(Handler{F: admin.AddOrderAttachments, P: privileges.Admin, S: "admin/add_order/attachments"})
 
-	// Inline handler (admin)
+	// Inline handler (invites)
 	B.Handle(tb.OnQuery, Handler{F: admin.InlineInviteHandler}.BaseWrapQ())
 
 	// Raw text dispatcher (multi-stage states)

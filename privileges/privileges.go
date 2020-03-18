@@ -15,8 +15,8 @@ const (
 	Admin
 
 	// Can manage areas
-	AdminManageAreas
+	// AdminManageAreas
 
 	// Can manage orders
-	AdminManageOrders
+	// AdminManageOrders
 )
