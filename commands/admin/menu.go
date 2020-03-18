@@ -72,7 +72,7 @@ func Menu(c *common.Ctx) {
 				},
 				{
 					{
-						Unique: "start",
+						Unique: "volunteer",
 						Text:   "🛵 Pannello volontario",
 					},
 				},
