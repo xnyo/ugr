@@ -13,6 +13,7 @@ type User struct {
 	State          string
 	StateData      string `gorm:"size:512" gorm:"default:'{}'"`
 	LatestBotMsgID int
+	AssignedOrders []Order `gorm:"foreignkey:AssignedUserID"`
 }
 
 // MessageSig makes User a struct that implements tb.Editable

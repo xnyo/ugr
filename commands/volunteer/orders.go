@@ -1,7 +1,9 @@
 package volunteer
 
 import (
+	"github.com/jinzhu/gorm"
 	"github.com/xnyo/ugr/common"
+	"github.com/xnyo/ugr/models"
 	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -24,5 +26,33 @@ func TakeOrder(c *common.Ctx) {
 }
 
 func TakeOrderZone(c *common.Ctx) {
+	// Fetch area
+	area, err := models.GetAreaByName(c.Db, c.Message.Text)
+	if err != nil {
+		c.SessionError(err, BackReplyMarkup)
+		return
+	}
+	if area == nil {
+		c.Reply(text.W("L'area specificata non esiste"))
+		return
+	}
 
+	// Fetch next order
+	var order models.Order
+	if err := c.Db.Where(&models.Order{
+		AreaID:         &area.ID,
+		AssignedUserID: nil,
+	}).Where(
+		"id > ?", 0,
+	).First(&order).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.UpdateMenu("Non ci sono altri ordini.")
+		} else {
+			c.SessionError(err, BackReplyMarkup)
+		}
+		return
+	}
+
+	// Update menu
+	c.UpdateMenu(order.ToTelegram(&area))
 }
