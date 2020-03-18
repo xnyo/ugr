@@ -2,20 +2,19 @@ package text
 
 import "fmt"
 
-const invitePrefix = "👋 **Ciao**, sei stato invitato come"
-const volunteer = "volontario"
-const admin = "amministratore"
-const inviteSuffix = "\n\n👇 Fai click qui per accettare! 👇"
-const InviteAccept = "✅ Accetta"
-const InvitePromptVolunteer = "🛵 Invita come volontario"
-const InviteDescriptionVolunteer = "L'utente verrà invitato come volontario"
-const InvitePromptAdmin = "🔧 Invita come amministratore"
-const InviteDescriptionAdmin = "L'utente verrà invitato come amministratore"
+// Invite prompts constants
+const (
+	InvitePromptVolunteer      = "🛵 Invita come volontario"
+	InviteDescriptionVolunteer = "L'utente verrà invitato come volontario"
+	InvitePromptAdmin          = "🔧 Invita come amministratore"
+	InviteDescriptionAdmin     = "L'utente verrà invitato come amministratore"
+	invitePrefix               = "👋 **Ciao**, sei stato invitato come"
+	volunteer                  = "volontario"
+	admin                      = "amministratore"
+	inviteSuffix               = "\n\n👇 Fai click qui per accettare! 👇"
+	InviteAccept               = "✅ Accetta"
+)
 
-func InviteVolunteer() string {
-	return fmt.Sprintf("%s __%s__%s", invitePrefix, volunteer, inviteSuffix)
-}
-
-func InviteAdmin() string {
-	return fmt.Sprintf("%s __%s__%s", invitePrefix, admin, inviteSuffix)
-}
+func invite(what string) string { return fmt.Sprintf("%s __%s__%s", invitePrefix, what, inviteSuffix) }
+func InviteVolunteer() string   { return invite(volunteer) }
+func InviteAdmin() string       { return invite(admin) }
