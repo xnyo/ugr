@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jinzhu/gorm"
-
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/models"
 	"github.com/xnyo/ugr/statemodels"
@@ -47,14 +45,10 @@ func AddOrderData(c *common.Ctx) {
 	}
 
 	// Area
-	var areas []models.Area
-	if err := c.Db.Where("visible = 1").Find(&areas).Error; err != nil {
+	keyboard, err := common.AreasReplyKeyboard(c.Db)
+	if err != nil {
 		c.SessionError(err, BackReplyMarkup)
 		return
-	}
-	var keyboard [][]tb.ReplyButton
-	for _, v := range areas {
-		keyboard = append(keyboard, []tb.ReplyButton{tb.ReplyButton{Text: v.Name}})
 	}
 	// TODO: tx
 	c.SetState("admin/add_order/area")
@@ -83,16 +77,12 @@ func AddOrderArea(c *common.Ctx) {
 	}
 
 	// Get area id by name
-	var area models.Area
-	if err := c.Db.Where("name = ?", areaName).First(&area).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			// No area
-			c.Reply("⚠️ Non ho trovato nessuna area con quel nome.", tb.ModeMarkdown)
-		} else {
-			// Other err
-			c.SessionError(err, BackReplyMarkup)
-		}
-		return
+	area, err := models.GetAreaByName(c.Db, areaName)
+	if err != nil {
+		c.SessionError(err, BackReplyMarkup)
+	}
+	if area == nil {
+		c.Reply("⚠️ Non ho trovato nessuna area con quel nome.", tb.ModeMarkdown)
 	}
 
 	// Update order.area

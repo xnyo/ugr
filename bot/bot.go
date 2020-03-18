@@ -5,9 +5,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
+	"github.com/xnyo/ugr/text"
+
 	"github.com/xnyo/ugr/commands/admin"
+	"github.com/xnyo/ugr/commands/volunteer"
 	"github.com/xnyo/ugr/privileges"
 
 	"github.com/jinzhu/gorm"
@@ -73,6 +77,23 @@ func rawDispatch(dispatcher map[string]CommandHandler) CommandHandler {
 	}
 }
 
+func rawTextHandle(dispatcher map[string]CommandHandler) CommandHandler {
+	return func(c *common.Ctx) {
+		if c.DbUser != nil && strings.TrimSpace(c.Message.Text) == text.MainMenu {
+			// "Go back to main menu" pre-handler
+			c.B.Delete(c.Message)
+			if strings.HasPrefix(c.DbUser.State, "admin") {
+				admin.Menu(c)
+			} else if strings.HasPrefix(c.DbUser.State, "volunteer") {
+				volunteer.Menu(c)
+			}
+		} else {
+			// Normal dispatcher
+			rawDispatch(dispatcher)
+		}
+	}
+}
+
 // notAvailable is a raw telebot handler that
 // responds to the callback query with a
 // "feature not available" message.
@@ -120,8 +141,8 @@ func Start() {
 	Db.AutoMigrate(models.All...)
 
 	// Dummy handlers
-	B.Handle("/start", Handler{F: commands.Start, P: privileges.Normal}.BaseWrap())
-	B.Handle("\fstart", Handler{F: commands.Start, P: privileges.Normal}.BaseWrapCb())
+	B.Handle("/start", Handler{F: volunteer.Menu, P: privileges.Normal}.BaseWrap())
+	B.Handle("\fvolunteer", Handler{F: volunteer.Menu, P: privileges.Normal}.BaseWrapCb())
 
 	// Admin -- menu
 	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Admin}.BaseWrap())
@@ -143,6 +164,7 @@ func Start() {
 			F: textPrompt(
 				"Indica il nome della zona da aggiungere",
 				"admin/add_area",
+				true,
 				admin.BackReplyMarkup,
 			),
 			P: privileges.Admin,
@@ -169,6 +191,7 @@ indirizzo destinatario
 numero di telefono destinatario
 note aggiuntive (anche più righe)</code>`,
 				"admin/add_order",
+				true,
 				admin.BackReplyMarkup,
 				tb.ModeHTML,
 			),
@@ -192,11 +215,15 @@ note aggiuntive (anche più righe)</code>`,
 	// Admin -- raw photo handlers
 	HandlePhoto(Handler{F: admin.AddOrderAttachments, P: privileges.Admin, S: "admin/add_order/attachments"})
 
+	// User
+	B.Handle("\fuser__take_order", Handler{F: volunteer.TakeOrder, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
+	HandleText(Handler{F: volunteer.TakeOrderZone, P: privileges.Normal, S: "volunteer/take_order/zone"})
+
 	// Inline handler (invites)
 	B.Handle(tb.OnQuery, Handler{F: admin.InlineInviteHandler}.BaseWrapQ())
 
 	// Raw text dispatcher (multi-stage states)
-	B.Handle(tb.OnText, Handler{F: rawDispatch(TextHandlers)}.BaseWrap())
+	B.Handle(tb.OnText, Handler{F: rawTextHandle(TextHandlers)}.BaseWrap())
 	B.Handle(tb.OnPhoto, Handler{F: rawDispatch(PhotoHandlers)}.BaseWrap())
 
 	// Start the bot (blocks the current goroutine)

@@ -29,7 +29,13 @@ func Areas(c *common.Ctx) {
 	var results []models.Area
 	c.Db.Find(&results)
 	for _, v := range results {
-		s += fmt.Sprintf("\n🔸 %s", v.String())
+		var visible string
+		if v.Visible {
+			visible = "👁"
+		} else {
+			visible = "❌"
+		}
+		s += fmt.Sprintf("\n🔸 %s (%s)", v.String(), visible)
 	}
 	c.UpdateMenu(s, BackReplyMarkup, tb.ModeMarkdown)
 }

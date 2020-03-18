@@ -124,8 +124,11 @@ func fsm(f CommandHandler, requiredState string) CommandHandler {
 	}
 }
 
-func textPrompt(message string, newState string, options ...interface{}) CommandHandler {
+func textPrompt(message string, newState string, clearStateData bool, options ...interface{}) CommandHandler {
 	return func(c *common.Ctx) {
+		if clearStateData {
+			c.ClearStateData()
+		}
 		c.SetState(newState)
 		c.Respond()
 		c.UpdateMenu("✒️ "+message, options...)

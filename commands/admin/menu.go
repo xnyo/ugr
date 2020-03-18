@@ -2,6 +2,7 @@ package admin
 
 import (
 	"github.com/xnyo/ugr/common"
+	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -9,7 +10,7 @@ import (
 // admin panel main menu
 var BackReplyButton tb.InlineButton = tb.InlineButton{
 	Unique: "admin",
-	Text:   "👈 Menu principale",
+	Text:   text.MainMenu,
 }
 
 // BackReplyMarkup is a tb.ReplyMarkup with a
