@@ -26,7 +26,7 @@ func Menu(c *common.Ctx) {
 	c.SetState("admin")
 	c.ClearStateData()
 	c.UpdateMenu(
-		"🔧 **Menu amministratore**",
+		"🔧 <b>Pannello amministratore</b>\n\n<i>Puoi accedere al pannello utente con /start</i>",
 		&tb.ReplyMarkup{
 			InlineKeyboard: [][]tb.InlineButton{
 				{
@@ -77,6 +77,6 @@ func Menu(c *common.Ctx) {
 				},
 			},
 		},
-		tb.ModeMarkdown,
+		tb.ModeHTML,
 	)
 }

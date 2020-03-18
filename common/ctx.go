@@ -73,7 +73,7 @@ func (c *Ctx) UpdateMenu(what interface{}, options ...interface{}) (*tb.Message,
 	if c.Callback != nil {
 		// Delete callback query original message
 		c.B.Delete(c.Callback.Message)
-	} else {
+	} else if c.DbUser.LatestBotMsgID > 0 {
 		// Delete latest message stored in db
 		c.B.Delete(c.DbUser)
 	}

@@ -91,14 +91,18 @@ func handleErrors(f CommandHandler) CommandHandler {
 func protected(f CommandHandler, requiredPrivileges privileges.Privileges) CommandHandler {
 	return func(c *common.Ctx) {
 		if c.DbUser == nil || c.DbUser.Privileges&requiredPrivileges == 0 {
-			log.Printf("%v (%v) does not have the required privileges (%v) to trigger %v", c.DbUser.TelegramID, c.DbUser.Privileges, requiredPrivileges, f)
+			if c.DbUser == nil {
+				log.Printf("%v is a guest and tried to trigger protected handler %v", c.TelegramUser().ID, f)
+			} else {
+				log.Printf("%v (%v) does not have the required privileges (%v) to trigger %v", c.DbUser.TelegramID, c.DbUser.Privileges, requiredPrivileges, f)
+			}
 			return
 		}
 		f(c)
 	}
 }
 
-func guestsOnly(f CommandHandler, requiredPrivileges privileges.Privileges) CommandHandler {
+func guestsOnly(f CommandHandler) CommandHandler {
 	return func(c *common.Ctx) {
 		if c.DbUser != nil {
 			log.Printf("%v tried to trigger guest-only handler %v", c.DbUser.TelegramID, f)
@@ -168,11 +172,11 @@ type Handler struct {
 	S string
 }
 
-func (h Handler) wrap() {
+func (h *Handler) wrap() {
 	if h.P > 0 {
 		h.F = protected(h.F, h.P)
-	} else if h.P <= 0 {
-		h.F = guestsOnly(h.F, h.P)
+	} else if h.P < 0 {
+		h.F = guestsOnly(h.F)
 	}
 	if h.S != "" {
 		h.F = fsm(h.F, h.S)

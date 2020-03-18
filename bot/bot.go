@@ -120,7 +120,7 @@ func Start() {
 	Db.AutoMigrate(models.All...)
 
 	// Dummy handlers
-	B.Handle("/start", Handler{F: commands.Start}.BaseWrap())
+	B.Handle("/start", Handler{F: commands.Start, P: privileges.Normal}.BaseWrap())
 
 	// Admin -- menu
 	B.Handle("/admin", Handler{F: admin.Menu, P: privileges.Normal}.BaseWrap())
