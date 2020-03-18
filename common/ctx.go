@@ -147,7 +147,9 @@ func (c *Ctx) SetStateData(data interface{}) {
 }
 
 func sessionError(c *Ctx, err error) {
-	c.SetState("error")
+	if c.DbUser == nil {
+		c.SetState("error")
+	}
 	c.HandleErr(err)
 }
 

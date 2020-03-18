@@ -40,8 +40,13 @@ func resolveUser(f CommandHandler) CommandHandler {
 		// Try to get user from db
 		if err := c.Db.Where(models.User{
 			TelegramID: c.TelegramUser().ID,
-		}).First(&user).Error; err != nil && err != gorm.ErrRecordNotFound {
-			panic(err)
+		}).First(&user).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				// Not registered
+				c.DbUser = nil
+			} else {
+				panic(err)
+			}
 		} else {
 			c.DbUser = &user
 		}
