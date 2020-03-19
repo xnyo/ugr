@@ -7,6 +7,5 @@ type Order struct {
 
 type VolunteerOrder struct {
 	CurrentOrderID uint
-	HasNext        bool
-	HasPrevious    bool
+	CurrentAreaID  uint
 }

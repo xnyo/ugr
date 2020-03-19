@@ -14,7 +14,6 @@ type OrderStatus uint8
 const (
 	OrderStatusNeedsData OrderStatus = iota
 	OrderStatusPending
-	OrderStatusTaken
 	OrderStatusDone
 )
 
@@ -24,8 +23,6 @@ func (s OrderStatus) String() string {
 		return "in attesa di dati"
 	case OrderStatusPending:
 		return "in attesa"
-	case OrderStatusTaken:
-		return "assegnato"
 	case OrderStatusDone:
 		return "completato"
 	}
