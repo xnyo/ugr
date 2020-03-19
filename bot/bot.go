@@ -216,9 +216,10 @@ note aggiuntive (anche più righe)</code>`,
 	HandlePhoto(Handler{F: admin.AddOrderAttachments, P: privileges.Admin, S: "admin/add_order/attachments"})
 
 	// User
-	B.Handle("\fuser__take_order", Handler{F: volunteer.TakeOrder, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
+	B.Handle("\fuser__take_order_start", Handler{F: volunteer.TakeOrderStart, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
 	B.Handle("\fuser__next_order", Handler{F: volunteer.NextOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
 	B.Handle("\fuser__previous_order", Handler{F: volunteer.PreviousOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
+	B.Handle("\fuser__take_order", Handler{F: volunteer.TakeOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
 	HandleText(Handler{F: volunteer.TakeOrderZone, P: privileges.Normal, S: "volunteer/take_order/zone"})
 
 	// Inline handler (invites)

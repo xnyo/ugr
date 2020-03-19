@@ -13,10 +13,10 @@ import (
 
 var previousButton = tb.InlineButton{Text: "⬅️", Unique: "user__previous_order"}
 var nextButton = tb.InlineButton{Text: "➡️", Unique: "user__next_order"}
-var takeButton = tb.InlineButton{Text: "✔️", Unique: "dummy"}
+var takeButton = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
 
-// TakeOrder starts the take order procedure, asking for the zone.
-func TakeOrder(c *common.Ctx) {
+// TakeOrderStart starts the take order procedure, asking for the zone.
+func TakeOrderStart(c *common.Ctx) {
 	c.SetState("volunteer/take_order/zone")
 	c.ClearStateData()
 	keyboard, err := common.AreasReplyKeyboard(c.Db)
@@ -34,6 +34,7 @@ func TakeOrder(c *common.Ctx) {
 
 func TakeOrderZone(c *common.Ctx) {
 	// Fetch area
+	// TODO: use changeOrder somehow. Repeated code :(
 	area, err := models.GetAreaByName(c.Db, c.Message.Text)
 	if err != nil {
 		c.SessionError(err, BackReplyMarkup)
@@ -49,7 +50,7 @@ func TakeOrderZone(c *common.Ctx) {
 		AreaID:         &area.ID,
 		AssignedUserID: nil,
 	}).Where(
-		"status == ?",
+		"status == ? AND assigned_user_id IS NULL",
 		models.OrderStatusPending,
 	).Limit(2).Find(&orders).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -91,7 +92,7 @@ func changeOrder(c *common.Ctx, next bool) {
 		return
 	}
 	var orders []models.Order
-	where := "status == ?"
+	where := "status = ? AND assigned_user_id IS NULL"
 	args := []interface{}{models.OrderStatusPending}
 	if next {
 		where += " AND id > ?"
@@ -165,4 +166,36 @@ func NextOrder(c *common.Ctx) {
 
 func PreviousOrder(c *common.Ctx) {
 	changeOrder(c, false)
+}
+
+func TakeOrder(c *common.Ctx) {
+	var stateData statemodels.VolunteerOrder
+	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
+		c.SessionError(err, BackReplyMarkup)
+		return
+	}
+	var order models.Order
+	if err := c.Db.Model(&order).Where(
+		"id = ?", stateData.CurrentOrderID,
+	).First(&order).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.UpdateMenu("Ordine non trovato!", BackReplyMarkup)
+			return
+		}
+		c.SessionError(err, BackReplyMarkup)
+		return
+	}
+	if order.Status != models.OrderStatusPending || order.AssignedUserID != nil {
+		c.Respond(&tb.CallbackResponse{
+			ShowAlert: true,
+			Text:      "Questo ordine è già stato preso da un altro volontario. Per favore, scegline un altro.",
+		})
+		return
+	}
+	id := uint(c.DbUser.TelegramID)
+	if err := c.Db.Model(&order).Update("assigned_user_id", &id).Error; err != nil {
+		c.SessionError(err, BackReplyMarkup)
+		return
+	}
+	c.UpdateMenu("Utopico!")
 }
