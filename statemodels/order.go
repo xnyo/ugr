@@ -4,3 +4,9 @@ package statemodels
 type Order struct {
 	OrderID uint
 }
+
+type VolunteerOrder struct {
+	CurrentOrderID uint
+	HasNext        bool
+	HasPrevious    bool
+}

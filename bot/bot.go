@@ -89,7 +89,7 @@ func rawTextHandle(dispatcher map[string]CommandHandler) CommandHandler {
 			}
 		} else {
 			// Normal dispatcher
-			rawDispatch(dispatcher)
+			rawDispatch(dispatcher)(c)
 		}
 	}
 }

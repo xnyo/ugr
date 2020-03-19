@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/models"
+	"github.com/xnyo/ugr/statemodels"
 	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -38,13 +39,11 @@ func TakeOrderZone(c *common.Ctx) {
 	}
 
 	// Fetch next order
-	var order models.Order
+	var orders []models.Order
 	if err := c.Db.Where(&models.Order{
 		AreaID:         &area.ID,
 		AssignedUserID: nil,
-	}).Where(
-		"id > ?", 0,
-	).First(&order).Error; err != nil {
+	}).Find(&orders).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.UpdateMenu("Non ci sono altri ordini.")
 		} else {
@@ -53,6 +52,29 @@ func TakeOrderZone(c *common.Ctx) {
 		return
 	}
 
+	// Determine if we have multiple orders
+	hasNext := len(orders) > 1
+	c.SetStateData(
+		statemodels.VolunteerOrder{
+			CurrentOrderID: orders[0].ID,
+			HasNext:        hasNext,
+			HasPrevious:    false,
+		},
+	)
+
 	// Update menu
-	c.UpdateMenu(order.ToTelegram(&area))
+	s, err := orders[0].ToTelegram(area)
+	if err != nil {
+		c.SessionError(err, BackReplyMarkup)
+		return
+	}
+	keyboard := [][]tb.InlineButton{{{Text: "✔️", Unique: "dummy"}}, {BackReplyButton}}
+	if hasNext {
+		keyboard[0] = append(keyboard[0], tb.InlineButton{Text: "➡️", Unique: "dummy"})
+	}
+	c.UpdateMenu(
+		s,
+		tb.ModeHTML,
+		&tb.ReplyMarkup{InlineKeyboard: keyboard},
+	)
 }
