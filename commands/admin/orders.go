@@ -41,14 +41,14 @@ func AddOrderData(c *common.Ctx) {
 		Notes:     notes,
 	}
 	if err := c.Db.Create(order).Error; err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 
 	// Area
 	keyboard, err := common.AreasReplyKeyboard(c.Db)
 	if err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	// TODO: tx
@@ -67,7 +67,7 @@ func AddOrderData(c *common.Ctx) {
 func AddOrderArea(c *common.Ctx) {
 	var stateData statemodels.Order
 	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func AddOrderArea(c *common.Ctx) {
 	// Get area id by name
 	area, err := models.GetAreaByName(c.Db, areaName)
 	if err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 	}
 	if area == nil {
 		c.Reply(text.W("Non ho trovato nessuna area con quel nome."), tb.ModeMarkdown)
@@ -88,7 +88,7 @@ func AddOrderArea(c *common.Ctx) {
 
 	// Update order.area
 	if err := c.Db.Model(&models.Order{}).Where("id = ?", stateData.OrderID).Update("area_id", area.ID).Error; err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 
@@ -115,7 +115,7 @@ func expireDone(c *common.Ctx) {
 func AddOrderExpire(c *common.Ctx) {
 	var stateData statemodels.Order
 	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	t, err := time.Parse("02/01/2006 15:04", c.Message.Text)
@@ -134,7 +134,7 @@ func AddOrderExpire(c *common.Ctx) {
 	).Update(
 		"expire", &t,
 	).Error; err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	expireDone(c)
@@ -156,7 +156,7 @@ func AddOrderAttachments(c *common.Ctx) {
 	}
 	var stateData statemodels.Order
 	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	log.Printf("Received a photo for order %d\n", stateData.OrderID)
@@ -180,7 +180,7 @@ func AddOrderAttachmentsEnd(c *common.Ctx) {
 	}
 	var stateData statemodels.Order
 	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	if err := c.Db.Model(&models.Order{}).Where(
@@ -191,17 +191,17 @@ func AddOrderAttachmentsEnd(c *common.Ctx) {
 		"status",
 		models.OrderStatusPending,
 	).Error; err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	var order models.Order
 	if err := c.Db.Model(&models.Order{}).Where("id = ?", stateData.OrderID).First(&order).Error; err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	summary, err := order.ToTelegram(c.Db)
 	if err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	c.SetState("admin/add_order/end")

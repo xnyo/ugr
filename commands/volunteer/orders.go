@@ -17,25 +17,13 @@ var (
 	takeButton     = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
 )
 
-func handleErr(err error) {
-	if err != nil {
-		switch v := err.(type) {
-		case common.ReportableError:
-			v.Report(c)
-		default:
-			c.SessionError(err, BackReplyMarkup)
-		}
-		return
-	}
-}
-
 // TakeOrderStart starts the take order procedure, asking for the zone.
 func TakeOrderStart(c *common.Ctx) {
 	c.SetState("volunteer/take_order/zone")
 	c.ClearStateData()
 	keyboard, err := common.AreasReplyKeyboard(c.Db)
 	if err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	keyboard = append(keyboard, []tb.ReplyButton{{Text: text.MainMenu}})
@@ -51,7 +39,7 @@ func TakeOrderZone(c *common.Ctx) {
 	// TODO: use changeOrder somehow. Repeated code :(
 	area, err := models.GetAreaByName(c.Db, c.Message.Text)
 	if err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	if area == nil {
@@ -70,7 +58,7 @@ func TakeOrderZone(c *common.Ctx) {
 		if err == gorm.ErrRecordNotFound {
 			c.UpdateMenu("Non ci sono altri ordini.")
 		} else {
-			c.SessionError(err, BackReplyMarkup)
+			c.HandleErr(err)
 		}
 		return
 	}
@@ -85,7 +73,7 @@ func TakeOrderZone(c *common.Ctx) {
 	)
 	s, err := orders[0].ToTelegram(area)
 	if err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	keyboard := [][]tb.InlineButton{{takeButton}, {BackReplyButton}}
@@ -179,7 +167,7 @@ func NextOrder(c *common.Ctx) {
 		case common.ReportableError:
 			v.Report(c)
 		default:
-			c.SessionError(err, BackReplyMarkup)
+			c.HandleErr(err)
 		}
 		return
 	}
@@ -192,7 +180,7 @@ func PreviousOrder(c *common.Ctx) {
 func TakeOrder(c *common.Ctx) {
 	var stateData statemodels.VolunteerOrder
 	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		c.HandleErr(err)
 		return
 	}
 	err := c.Db.Transaction(func(tx *gorm.DB) error {
@@ -219,7 +207,7 @@ func TakeOrder(c *common.Ctx) {
 		case common.ReportableError:
 			v.Report(c)
 		default:
-			c.SessionError(err, BackReplyMarkup)
+			c.HandleErr(err)
 		}
 		return
 	}

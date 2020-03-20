@@ -22,7 +22,7 @@ func handleInvite(c *common.Ctx, p privileges.Privileges) {
 			TelegramID: c.TelegramUser().ID,
 			Privileges: privileges.Normal,
 		}).FirstOrCreate(&user).Error; err != nil {
-			c.RespondSessionError(err)
+			c.HandleErr(err)
 			return
 		}
 		c.DbUser = &user
@@ -32,7 +32,7 @@ func handleInvite(c *common.Ctx, p privileges.Privileges) {
 	if !new || p != privileges.Normal {
 		// Extra privileges needed, update privileges
 		if err := c.Db.Model(&c.DbUser).Update("privileges", gorm.Expr("privileges | ?", p)).Error; err != nil {
-			c.RespondSessionError(err)
+			c.HandleErr(err)
 			return
 		}
 	}

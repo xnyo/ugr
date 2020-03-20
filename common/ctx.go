@@ -146,28 +146,51 @@ func (c *Ctx) SetStateData(data interface{}) {
 	c.DbUser.StateData = s
 }
 
-func sessionError(c *Ctx, err error) {
-	if c.DbUser == nil {
+/*func sessionError(c *Ctx, err error) {
+	if c.DbUser != nil {
 		c.SetState("error")
 	}
 	c.HandleErr(err)
-}
+}*/
 
 func (c *Ctx) SessionError(err error, replyMarkup *tb.ReplyMarkup) {
-	sessionError(c, err)
-	c.Reply(text.SessionError, replyMarkup, tb.ModeMarkdown)
+	/*sessionError(c, err)
+	c.Reply(text.SessionError, replyMarkup, tb.ModeMarkdown)*/
 }
 
 func (c *Ctx) RespondSessionError(err error) {
-	sessionError(c, err)
+	/*sessionError(c, err)
 	c.Respond(&tb.CallbackResponse{
 		Text:      text.SessionError,
 		ShowAlert: true,
-	})
+	})*/
 }
 
 // HandleErr reports an error to sentry
 func (c *Ctx) HandleErr(err error) {
+	if err == nil {
+		return
+	}
+	switch v := err.(type) {
+	case ReportableError:
+		v.Report(c)
+	default:
+		{
+			// Unhandled error
+			if c.DbUser != nil {
+				c.SetState("error")
+			}
+			c.Reply(
+				text.SessionError,
+				[][]tb.InlineButton{{{
+					Unique: "volunteer",
+					Text:   text.MainMenu,
+				}}},
+				tb.ModeMarkdown,
+			)
+			panic(err)
+		}
+	}
 	// TODO: Sentry
-	panic(err)
+	//panic(err)
 }
