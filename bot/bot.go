@@ -218,9 +218,9 @@ note aggiuntive (anche più righe)</code>`,
 	// User -- new order
 	B.Handle("\fuser__take_order_start", Handler{F: volunteer.TakeOrderStart, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
 	HandleText(Handler{F: volunteer.TakeOrderZone, P: privileges.Normal, S: "volunteer/take_order/zone"})
-	B.Handle("\fuser__next_order", Handler{F: volunteer.NextOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
-	B.Handle("\fuser__previous_order", Handler{F: volunteer.PreviousOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
-	B.Handle("\fuser__take_order", Handler{F: volunteer.TakeOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
+	B.Handle("\fuser__choose_next", Handler{F: volunteer.NextOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
+	B.Handle("\fuser__choose_previous", Handler{F: volunteer.PreviousOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
+	B.Handle("\fuser__choose_confirm", Handler{F: volunteer.TakeOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
 
 	// User -- my orders
 	B.Handle("\fuser__my_orders", Handler{F: volunteer.MyOrders, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
