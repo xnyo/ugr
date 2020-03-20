@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 
+	"github.com/xnyo/ugr/models"
 	"github.com/xnyo/ugr/text"
 
 	"github.com/xnyo/ugr/privileges"
@@ -35,6 +36,28 @@ func Menu(c *common.Ctx) {
 	if c.TelegramUser().FirstName != "" {
 		s += fmt.Sprintf(", <b>%s</b>!", html.EscapeString(c.TelegramUser().FirstName))
 	}
+
+	// Count all orders
+	var totalOrders int
+	if err := c.Db.Model(&models.Order{}).Where(&models.Order{
+		Status: models.OrderStatusPending,
+	}).Count(&totalOrders).Error; err != nil {
+		c.HandleErr(err)
+		return
+	}
+
+	// Count user orders
+	var myOrders int
+	uid := uint(c.DbUser.TelegramID)
+	if err := c.Db.Model(&models.Order{}).Where(&models.Order{
+		Status:         models.OrderStatusPending,
+		AssignedUserID: &uid,
+	}).Count(&myOrders).Error; err != nil {
+		c.HandleErr(err)
+		return
+	}
+
+	s += fmt.Sprintf("\n\nAttualmente ci sono <b>%d</b> ordini disponibili, di cui <b>%d</b> assegnati a te.", totalOrders, myOrders)
 	c.SetState("volunteer")
 	c.ClearStateData()
 	keyboard := [][]tb.InlineButton{

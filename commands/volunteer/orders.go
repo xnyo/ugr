@@ -12,9 +12,16 @@ import (
 )
 
 var (
-	previousButton = tb.InlineButton{Text: "⬅️", Unique: "user__previous_order"}
-	nextButton     = tb.InlineButton{Text: "➡️", Unique: "user__next_order"}
-	takeButton     = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
+	previousButton  = tb.InlineButton{Text: "⬅️", Unique: "user__previous_order"}
+	nextButton      = tb.InlineButton{Text: "➡️", Unique: "user__next_order"}
+	takeButton      = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
+	myOrderKeyboard = [][]tb.InlineButton{
+		{
+			{Unique: "dummy", Text: "✅ Completato"},
+			{Unique: "dummy", Text: "😞 Rinuncia"},
+		},
+		{BackReplyButton},
+	}
 )
 
 // TakeOrderStart starts the take order procedure, asking for the zone.
@@ -184,8 +191,8 @@ func TakeOrder(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
+	var order models.Order
 	err := c.Db.Transaction(func(tx *gorm.DB) error {
-		var order models.Order
 		if err := c.Db.Model(&order).Where(
 			"id = ?", stateData.CurrentOrderID,
 		).First(&order).Error; err != nil {
@@ -204,13 +211,21 @@ func TakeOrder(c *common.Ctx) {
 		return nil
 	})
 	if err != nil {
-		switch v := err.(type) {
-		case common.ReportableError:
-			v.Report(c)
-		default:
-			c.HandleErr(err)
-		}
+		c.HandleErr(err)
 		return
 	}
-	c.UpdateMenu("Utopico!")
+	s, err := order.ToTelegram(c.Db)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+	c.UpdateMenu(
+		`🛍 <b>Hai preso questo ordine!</b>
+Ora sarà visibile dalla lista 'I miei ordini'
+<i>Non dimenticarti di segnarlo come 'Completato' una volta portato a termine!</i>
+
+`+s,
+		tb.ModeHTML,
+		&tb.ReplyMarkup{InlineKeyboard: myOrderKeyboard},
+	)
 }
