@@ -13,10 +13,6 @@ import (
 )
 
 var (
-	// takeOrderPreviousButton = tb.InlineButton{Text: "⬅️", Unique: "user__previous_order"}
-	// takeOrderNextButton     = tb.InlineButton{Text: "➡️", Unique: "user__next_order"}
-	// takeOrderTakeButton     = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
-
 	myOrderPreviousButton = tb.InlineButton{Text: "⬅️", Unique: "user__my_previous_order"}
 	myOrderNextButton     = tb.InlineButton{Text: "➡️", Unique: "user__my_next_order"}
 	myOrderKeyboard       = [][]tb.InlineButton{
@@ -30,9 +26,9 @@ var (
 	myOrderReplyMarkup = &tb.ReplyMarkup{InlineKeyboard: myOrderKeyboard}
 )
 
-// TakeOrderStart starts the take order procedure, asking for the zone.
-func TakeOrderStart(c *common.Ctx) {
-	c.SetState("volunteer/take_order/zone")
+// ChooseOrderStart starts the take order procedure, asking for the zone.
+func ChooseOrderStart(c *common.Ctx) {
+	c.SetState("volunteer/choose/zone")
 	c.ClearStateData()
 	keyboard, err := common.AreasReplyKeyboard(c.Db)
 	if err != nil {
@@ -47,7 +43,7 @@ func TakeOrderStart(c *common.Ctx) {
 	)
 }
 
-func TakeOrderZone(c *common.Ctx) {
+func ChooseOrderZone(c *common.Ctx) {
 	// Fetch area
 	// TODO: use changeOrder somehow. Repeated code :(
 	area, err := models.GetAreaByName(c.Db, c.Message.Text)
@@ -78,7 +74,7 @@ func TakeOrderZone(c *common.Ctx) {
 	}
 
 	// Determine if we have multiple orders
-	c.SetState("volunteer/take_order/order")
+	c.SetState("volunteer/choose/order")
 	s, err := orders[0].ToTelegram(area)
 	if err != nil {
 		c.HandleErr(err)
@@ -190,7 +186,7 @@ func PreviousOrder(c *common.Ctx) {
 	}
 }
 
-func TakeOrder(c *common.Ctx) {
+func ChooseOrder(c *common.Ctx) {
 	orderID, err := strconv.Atoi(c.Callback.Data)
 	if err != nil {
 		c.HandleErr(err)

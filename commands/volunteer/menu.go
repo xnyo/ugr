@@ -63,7 +63,7 @@ func Menu(c *common.Ctx) {
 	c.SetState("volunteer")
 	c.ClearStateData()
 	keyboard := [][]tb.InlineButton{
-		{{Unique: "user__take_order_start", Text: "🛒 Scegli ordine"}},
+		{{Unique: "user__choose", Text: "🛒 Scegli ordine"}},
 		{{Unique: "user__my_orders", Text: "📑 I miei ordini"}},
 	}
 	if c.DbUser.Privileges&privileges.Admin > 0 {
