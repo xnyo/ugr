@@ -43,23 +43,24 @@ func TakeOrderZone(c *common.Ctx) {
 		return
 	}
 	if area == nil {
-		c.Reply(text.W("L'area specificata non esiste"), tb.ModeMarkdown)
+		c.HandleErr(common.ReportableError{T: "L'area specificata non esiste"})
 		return
 	}
 	// Fetch next order
 	var orders []models.Order
 	if err := c.Db.Where(&models.Order{
-		AreaID:         &area.ID,
-		AssignedUserID: nil,
+		AreaID: &area.ID,
+		Status: models.OrderStatusPending,
 	}).Where(
-		"status == ? AND assigned_user_id IS NULL",
-		models.OrderStatusPending,
+		"assigned_user_id IS NULL",
 	).Limit(2).Find(&orders).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.UpdateMenu("Non ci sono altri ordini.")
-		} else {
-			c.HandleErr(err)
-		}
+		c.HandleErr(err)
+		return
+	}
+
+	// Empty set check
+	if len(orders) == 0 {
+		c.HandleErr(common.ReportableError{T: text.NoMoreOrders})
 		return
 	}
 
@@ -93,29 +94,29 @@ func changeOrder(c *common.Ctx, next bool) error {
 		return err
 	}
 	var orders []models.Order
-	where := "status = ? AND assigned_user_id IS NULL"
-	args := []interface{}{models.OrderStatusPending}
+	// nil in Where() does not work...
+	where := "assigned_user_id IS NULL"
+	args := []interface{}{stateData.CurrentOrderID}
 	if next {
 		where += " AND id > ?"
 	} else {
 		where += " AND id < ?"
 	}
-	args = append(args, stateData.CurrentOrderID)
 	if err := c.Db.Where(&models.Order{
-		AreaID:         &stateData.CurrentAreaID,
-		AssignedUserID: nil,
+		AreaID: &stateData.CurrentAreaID,
+		Status: models.OrderStatusPending,
 	}).Where(
 		where, args...,
 	).Limit(2).Find(&orders).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return common.ReportableError{T: "Non ci sono altri ordini."}
-		}
 		return err
 	}
 
 	// Update menu
 	var newOrderIdx int
 	l := len(orders)
+	if l == 0 {
+		c.HandleErr(common.ReportableError{T: text.NoMoreOrders})
+	}
 	if next {
 		newOrderIdx = 0
 	} else {

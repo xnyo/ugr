@@ -8,6 +8,7 @@ const (
 	SessionError  = "⚠️ **Si è verificato un errore nella sessione corrente**. Per favore, ricomincia."
 	ErrorOccurred = "Si è verificato un errore."
 	MainMenu      = "👈 Menu principale"
+	NoMoreOrders  = "Non ci sono altri ordini in questa zona."
 )
 
 // W returns a warning-like error message

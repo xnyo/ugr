@@ -34,6 +34,8 @@ func (c *Ctx) TelegramUser() *tb.User {
 
 // Reply replies to the message held by the current Ctx.
 // This works both with callbacks and normal messages.
+// TODO: make this private and replace all calls to
+// 	it with c.HandleErr(common.ReportableError{T:...})
 func (c *Ctx) Reply(what interface{}, options ...interface{}) (*tb.Message, error) {
 	return c.B.Send(c.TelegramUser(), what, options...)
 }
@@ -43,27 +45,35 @@ func (c *Ctx) Reply(what interface{}, options ...interface{}) (*tb.Message, erro
 // - If the ctx holds a callback query, it sends a callback response
 // - If the ctx holds an inline query, it sends a query result
 // - If the ctx holds a message, it sends a message
-func (c *Ctx) Report(text string) {
+func (c *Ctx) Report(txt string) {
 	if c.Callback != nil {
 		// Callback query
 		c.Respond(&tb.CallbackResponse{
 			ShowAlert: true,
-			Text:      text,
+			Text:      txt,
 		})
 	} else if c.InlineQuery != nil {
 		// Inline query
 		results := tb.Results{
 			&tb.ArticleResult{
-				Title: text,
+				Title: txt,
 			},
 		}
 		// Make sure the id is unique
-		results[0].SetResultID(fmt.Sprintf("%s_%s", GetMD5Hash(text), string(c.TelegramUser().ID)))
+		results[0].SetResultID(fmt.Sprintf("%s_%s", GetMD5Hash(txt), string(c.TelegramUser().ID)))
 		results[0].SetContent(&tb.InputTextMessageContent{Text: "⛔"})
 		c.B.Answer(c.InlineQuery, &tb.QueryResponse{Results: results})
 	} else {
 		// Message
-		c.Reply(text)
+		c.UpdateMenu(
+			txt,
+			&tb.ReplyMarkup{
+				InlineKeyboard: [][]tb.InlineButton{{{
+					Unique: "volunteer",
+					Text:   text.MainMenu,
+				}}},
+			},
+		)
 	}
 }
 
@@ -146,26 +156,6 @@ func (c *Ctx) SetStateData(data interface{}) {
 	c.DbUser.StateData = s
 }
 
-/*func sessionError(c *Ctx, err error) {
-	if c.DbUser != nil {
-		c.SetState("error")
-	}
-	c.HandleErr(err)
-}*/
-
-func (c *Ctx) SessionError(err error, replyMarkup *tb.ReplyMarkup) {
-	/*sessionError(c, err)
-	c.Reply(text.SessionError, replyMarkup, tb.ModeMarkdown)*/
-}
-
-func (c *Ctx) RespondSessionError(err error) {
-	/*sessionError(c, err)
-	c.Respond(&tb.CallbackResponse{
-		Text:      text.SessionError,
-		ShowAlert: true,
-	})*/
-}
-
 // HandleErr reports an error to sentry
 func (c *Ctx) HandleErr(err error) {
 	if err == nil {
@@ -180,17 +170,18 @@ func (c *Ctx) HandleErr(err error) {
 			if c.DbUser != nil {
 				c.SetState("error")
 			}
-			c.Reply(
+			c.UpdateMenu(
 				text.SessionError,
-				[][]tb.InlineButton{{{
-					Unique: "volunteer",
-					Text:   text.MainMenu,
-				}}},
+				&tb.ReplyMarkup{
+					InlineKeyboard: [][]tb.InlineButton{{{
+						Unique: "volunteer",
+						Text:   text.MainMenu,
+					}}},
+				},
 				tb.ModeMarkdown,
 			)
+			// TODO: Sentry
 			panic(err)
 		}
 	}
-	// TODO: Sentry
-	//panic(err)
 }
