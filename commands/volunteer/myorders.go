@@ -1,7 +1,6 @@
 package volunteer
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/jinzhu/gorm"
@@ -66,7 +65,6 @@ func myChangeOrder(c *common.Ctx, next bool) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("era glaciale %d\n", payloadOID)
 
 	var orders []models.Order
 	uid := uint(c.DbUser.TelegramID)
