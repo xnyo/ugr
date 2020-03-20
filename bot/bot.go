@@ -215,12 +215,15 @@ note aggiuntive (anche più righe)</code>`,
 	// Admin -- raw photo handlers
 	HandlePhoto(Handler{F: admin.AddOrderAttachments, P: privileges.Admin, S: "admin/add_order/attachments"})
 
-	// User
+	// User -- new order
 	B.Handle("\fuser__take_order_start", Handler{F: volunteer.TakeOrderStart, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
+	HandleText(Handler{F: volunteer.TakeOrderZone, P: privileges.Normal, S: "volunteer/take_order/zone"})
 	B.Handle("\fuser__next_order", Handler{F: volunteer.NextOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
 	B.Handle("\fuser__previous_order", Handler{F: volunteer.PreviousOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
 	B.Handle("\fuser__take_order", Handler{F: volunteer.TakeOrder, P: privileges.Normal, S: "volunteer/take_order/order"}.BaseWrapCb())
-	HandleText(Handler{F: volunteer.TakeOrderZone, P: privileges.Normal, S: "volunteer/take_order/zone"})
+
+	// User -- my orders
+	B.Handle("\fuser__my_orders", Handler{F: volunteer.MyOrders, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
 
 	// Inline handler (invites)
 	B.Handle(tb.OnQuery, Handler{F: admin.InlineInviteHandler}.BaseWrapQ())

@@ -16,12 +16,14 @@ var (
 	nextButton      = tb.InlineButton{Text: "➡️", Unique: "user__next_order"}
 	takeButton      = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
 	myOrderKeyboard = [][]tb.InlineButton{
+		{previousButton, nextButton},
 		{
 			{Unique: "dummy", Text: "✅ Completato"},
 			{Unique: "dummy", Text: "😞 Rinuncia"},
 		},
 		{BackReplyButton},
 	}
+	myOrderReplyMarkup = &tb.ReplyMarkup{InlineKeyboard: myOrderKeyboard}
 )
 
 // TakeOrderStart starts the take order procedure, asking for the zone.
@@ -226,6 +228,6 @@ Ora sarà visibile dalla lista 'I miei ordini'
 
 `+s,
 		tb.ModeHTML,
-		&tb.ReplyMarkup{InlineKeyboard: myOrderKeyboard},
+		myOrderReplyMarkup,
 	)
 }

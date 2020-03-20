@@ -41,7 +41,9 @@ func Menu(c *common.Ctx) {
 	var totalOrders int
 	if err := c.Db.Model(&models.Order{}).Where(&models.Order{
 		Status: models.OrderStatusPending,
-	}).Count(&totalOrders).Error; err != nil {
+	}).Where(
+		"assigned_user_id IS NULL",
+	).Count(&totalOrders).Error; err != nil {
 		c.HandleErr(err)
 		return
 	}
@@ -57,7 +59,7 @@ func Menu(c *common.Ctx) {
 		return
 	}
 
-	s += fmt.Sprintf("\n\nAttualmente ci sono <b>%d</b> ordini disponibili, di cui <b>%d</b> assegnati a te.", totalOrders, myOrders)
+	s += fmt.Sprintf("\n\nAttualmente ci sono\n<b>%d</b> ordini disponibili\n<b>%d</b> ordini assegnati a te.", totalOrders, myOrders)
 	c.SetState("volunteer")
 	c.ClearStateData()
 	keyboard := [][]tb.InlineButton{
