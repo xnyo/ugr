@@ -137,7 +137,7 @@ func Start() {
 		log.Fatal(err)
 	}
 	defer Db.Close()
-	Db.LogMode(true)
+	// Db.LogMode(true)
 	Db.AutoMigrate(models.All...)
 
 	// Dummy handlers
@@ -224,6 +224,8 @@ note aggiuntive (anche più righe)</code>`,
 
 	// User -- my orders
 	B.Handle("\fuser__my_orders", Handler{F: volunteer.MyOrders, P: privileges.Normal, S: "volunteer"}.BaseWrapCb())
+	B.Handle("\fuser__my_previous", Handler{F: volunteer.MyPrevious, P: privileges.Normal, S: "volunteer/my"}.BaseWrapCb())
+	B.Handle("\fuser__my_next", Handler{F: volunteer.MyNext, P: privileges.Normal, S: "volunteer/my"}.BaseWrapCb())
 
 	// Inline handler (invites)
 	B.Handle(tb.OnQuery, Handler{F: admin.InlineInviteHandler}.BaseWrapQ())

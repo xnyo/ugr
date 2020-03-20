@@ -1,7 +1,6 @@
 package volunteer
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -10,20 +9,6 @@ import (
 	"github.com/xnyo/ugr/models"
 	"github.com/xnyo/ugr/text"
 	tb "gopkg.in/tucnak/telebot.v2"
-)
-
-var (
-	myOrderPreviousButton = tb.InlineButton{Text: "⬅️", Unique: "user__my_previous_order"}
-	myOrderNextButton     = tb.InlineButton{Text: "➡️", Unique: "user__my_next_order"}
-	myOrderKeyboard       = [][]tb.InlineButton{
-		{myOrderPreviousButton, myOrderNextButton},
-		{
-			{Unique: "user__my_done", Text: "✅ Completato"},
-			{Unique: "user__my_cancel", Text: "😞 Rinuncia"},
-		},
-		{BackReplyButton},
-	}
-	myOrderReplyMarkup = &tb.ReplyMarkup{InlineKeyboard: myOrderKeyboard}
 )
 
 // ChooseOrderStart starts the take order procedure, asking for the zone.
@@ -69,7 +54,7 @@ func ChooseOrderZone(c *common.Ctx) {
 
 	// Empty set check
 	if len(orders) == 0 {
-		c.HandleErr(common.ReportableError{T: text.NoMoreOrders})
+		c.HandleErr(common.ReportableError{T: text.NoMoreOrdersZone})
 		return
 	}
 
@@ -97,7 +82,6 @@ func ChooseOrderZone(c *common.Ctx) {
 }
 
 func changeOrder(c *common.Ctx, next bool) error {
-	fmt.Printf("Il payload è %s\n", c.Callback.Data)
 	payload := strings.Split(c.Callback.Data, "|")
 	if len(payload) != 2 {
 		return common.ReportableError{T: "Illegal payload"}
@@ -115,32 +99,30 @@ func changeOrder(c *common.Ctx, next bool) error {
 	// nil in Where() does not work...
 	where := "assigned_user_id IS NULL AND area_id = ?"
 	args := []interface{}{payloadAID, payloadOID}
+	var order string
 	if next {
 		where += " AND id > ?"
+		order = "id asc"
 	} else {
 		where += " AND id < ?"
+		order = "id desc"
 	}
 	if err := c.Db.Where(&models.Order{
 		Status: models.OrderStatusPending,
 	}).Where(
 		where, args...,
-	).Limit(2).Find(&orders).Error; err != nil {
+	).Order(order).Limit(2).Find(&orders).Error; err != nil {
 		return err
 	}
 
 	// Update menu
-	var newOrderIdx int
 	l := len(orders)
 	if l == 0 {
-		return common.ReportableError{T: text.NoMoreOrders}
+		return common.ReportableError{T: text.NoMoreOrdersZone}
 	}
-	if next {
-		newOrderIdx = 0
-	} else {
-		newOrderIdx = l - 1
-	}
-	newOID := int(orders[newOrderIdx].ID)
-	s, err := orders[newOrderIdx].ToTelegram(c.Db)
+	// New order is always in index 0 because we order the results
+	newOID := int(orders[0].ID)
+	s, err := orders[0].ToTelegram(c.Db)
 	if err != nil {
 		return err
 	}
@@ -220,6 +202,7 @@ func ChooseOrder(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
+	c.SetState("volunteer")
 	c.UpdateMenu(
 		`🛍 <b>Hai preso questo ordine!</b>
 Ora sarà visibile dalla lista 'I miei ordini'
@@ -227,6 +210,6 @@ Ora sarà visibile dalla lista 'I miei ordini'
 
 `+s,
 		tb.ModeHTML,
-		myOrderReplyMarkup,
+		myOrdersKeyboard(orderID),
 	)
 }
