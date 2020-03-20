@@ -202,7 +202,7 @@ func ChooseOrder(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
-	c.SetState("volunteer")
+	c.SetState("volunteer/my")
 	c.UpdateMenu(
 		`🛍 <b>Hai preso questo ordine!</b>
 Ora sarà visibile dalla lista 'I miei ordini'
