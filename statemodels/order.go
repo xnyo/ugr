@@ -4,8 +4,3 @@ package statemodels
 type Order struct {
 	OrderID uint
 }
-
-type VolunteerOrder struct {
-	CurrentOrderID uint
-	CurrentAreaID  uint
-}

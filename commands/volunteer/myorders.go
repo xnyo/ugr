@@ -3,7 +3,6 @@ package volunteer
 import (
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/models"
-	"github.com/xnyo/ugr/statemodels"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -24,7 +23,6 @@ func MyOrders(c *common.Ctx) {
 
 	// Determine if we have multiple orders
 	c.SetState("volunteer/my_orders")
-	c.SetStateData(statemodels.VolunteerOrder{CurrentOrderID: orders[0].ID})
 	s, err := orders[0].ToTelegram(c.Db)
 	if err != nil {
 		c.HandleErr(err)
