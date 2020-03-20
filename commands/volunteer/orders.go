@@ -11,9 +11,23 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-var previousButton = tb.InlineButton{Text: "⬅️", Unique: "user__previous_order"}
-var nextButton = tb.InlineButton{Text: "➡️", Unique: "user__next_order"}
-var takeButton = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
+var (
+	previousButton = tb.InlineButton{Text: "⬅️", Unique: "user__previous_order"}
+	nextButton     = tb.InlineButton{Text: "➡️", Unique: "user__next_order"}
+	takeButton     = tb.InlineButton{Text: "✔️", Unique: "user__take_order"}
+)
+
+func handleErr(err error) {
+	if err != nil {
+		switch v := err.(type) {
+		case common.ReportableError:
+			v.Report(c)
+		default:
+			c.SessionError(err, BackReplyMarkup)
+		}
+		return
+	}
+}
 
 // TakeOrderStart starts the take order procedure, asking for the zone.
 func TakeOrderStart(c *common.Ctx) {
@@ -85,11 +99,10 @@ func TakeOrderZone(c *common.Ctx) {
 	)
 }
 
-func changeOrder(c *common.Ctx, next bool) {
+func changeOrder(c *common.Ctx, next bool) error {
 	var stateData statemodels.VolunteerOrder
 	if err := json.Unmarshal([]byte(c.DbUser.StateData), &stateData); err != nil {
-		c.SessionError(err, BackReplyMarkup)
-		return
+		return err
 	}
 	var orders []models.Order
 	where := "status = ? AND assigned_user_id IS NULL"
@@ -107,10 +120,9 @@ func changeOrder(c *common.Ctx, next bool) {
 		where, args...,
 	).Limit(2).Find(&orders).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.UpdateMenu("Non ci sono altri ordini.")
-		} else {
-			c.SessionError(err, BackReplyMarkup)
+			return common.ReportableError{T: "Non ci sono altri ordini."}
 		}
+		return err
 	}
 
 	// Update menu
@@ -123,8 +135,7 @@ func changeOrder(c *common.Ctx, next bool) {
 	}
 	s, err := orders[newOrderIdx].ToTelegram(c.Db)
 	if err != nil {
-		c.SessionError(err, BackReplyMarkup)
-		return
+		return err
 	}
 	var keyboard [][]tb.InlineButton
 	if next {
@@ -158,10 +169,20 @@ func changeOrder(c *common.Ctx, next bool) {
 		tb.ModeHTML,
 		&tb.ReplyMarkup{InlineKeyboard: keyboard},
 	)
+	return nil
 }
 
 func NextOrder(c *common.Ctx) {
-	changeOrder(c, true)
+	err := changeOrder(c, true)
+	if err != nil {
+		switch v := err.(type) {
+		case common.ReportableError:
+			v.Report(c)
+		default:
+			c.SessionError(err, BackReplyMarkup)
+		}
+		return
+	}
 }
 
 func PreviousOrder(c *common.Ctx) {
@@ -174,27 +195,32 @@ func TakeOrder(c *common.Ctx) {
 		c.SessionError(err, BackReplyMarkup)
 		return
 	}
-	var order models.Order
-	if err := c.Db.Model(&order).Where(
-		"id = ?", stateData.CurrentOrderID,
-	).First(&order).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.UpdateMenu("Ordine non trovato!", BackReplyMarkup)
-			return
+	err := c.Db.Transaction(func(tx *gorm.DB) error {
+		var order models.Order
+		if err := c.Db.Model(&order).Where(
+			"id = ?", stateData.CurrentOrderID,
+		).First(&order).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return common.ReportableError{T: "Ordine non trovato. Per favore, ricomincia la procedura."}
+			}
+			return err
 		}
-		c.SessionError(err, BackReplyMarkup)
-		return
-	}
-	if order.Status != models.OrderStatusPending || order.AssignedUserID != nil {
-		c.Respond(&tb.CallbackResponse{
-			ShowAlert: true,
-			Text:      "Questo ordine è già stato preso da un altro volontario. Per favore, scegline un altro.",
-		})
-		return
-	}
-	id := uint(c.DbUser.TelegramID)
-	if err := c.Db.Model(&order).Update("assigned_user_id", &id).Error; err != nil {
-		c.SessionError(err, BackReplyMarkup)
+		if order.Status != models.OrderStatusPending || order.AssignedUserID != nil {
+			return common.ReportableError{T: "Questo ordine è già stato preso da un altro volontario. Per favore, scegline un altro."}
+		}
+		id := uint(c.DbUser.TelegramID)
+		if err := c.Db.Model(&order).Update("assigned_user_id", &id).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		switch v := err.(type) {
+		case common.ReportableError:
+			v.Report(c)
+		default:
+			c.SessionError(err, BackReplyMarkup)
+		}
 		return
 	}
 	c.UpdateMenu("Utopico!")
