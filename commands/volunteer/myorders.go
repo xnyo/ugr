@@ -10,14 +10,14 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-type findArgs struct {
+type myFindArgs struct {
 	userID  *uint
 	orderID int
-	first   bool
 	next    bool
+	first   bool
 }
 
-func myFind(db *gorm.DB, args findArgs) *gorm.DB {
+func myFind(db *gorm.DB, args myFindArgs) *gorm.DB {
 	r := db.Where(&models.Order{
 		AssignedUserID: args.userID,
 		Status:         models.OrderStatusPending,
@@ -37,7 +37,7 @@ func MyOrders(c *common.Ctx) {
 	uid := uint(c.DbUser.TelegramID)
 	if err := myFind(
 		c.Db,
-		findArgs{
+		myFindArgs{
 			userID: &uid,
 			first:  true,
 		},
@@ -45,7 +45,8 @@ func MyOrders(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
-	if len(orders) == 0 {
+	l := len(orders)
+	if l == 0 {
 		c.HandleErr(common.ReportableError{T: "Non hai ordini."})
 		return
 	}
@@ -57,7 +58,7 @@ func MyOrders(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
-	c.UpdateMenu(s, myOrdersKeyboard(int(orders[0].ID)), tb.ModeHTML)
+	c.UpdateMenu(s, myOrdersKeyboard(int(orders[0].ID), false, l > 1), tb.ModeHTML)
 }
 
 func myChangeOrder(c *common.Ctx, next bool) error {
@@ -70,7 +71,7 @@ func myChangeOrder(c *common.Ctx, next bool) error {
 	uid := uint(c.DbUser.TelegramID)
 	if err := myFind(
 		c.Db,
-		findArgs{
+		myFindArgs{
 			userID:  &uid,
 			orderID: payloadOID,
 			first:   false,
@@ -84,6 +85,17 @@ func myChangeOrder(c *common.Ctx, next bool) error {
 	if l == 0 {
 		return common.ReportableError{T: text.NoMoreOrders}
 	}
+
+	// Determine hasPrevious/hasNext
+	var hasPrevious, hasNext bool
+	if next {
+		hasPrevious = true
+		hasNext = l > 1
+	} else {
+		hasNext = true
+		hasPrevious = l > 1
+	}
+
 	// New order is always in index 0 because we order the results
 	newOID := int(orders[0].ID)
 	s, err := orders[0].ToTelegram(c.Db)
@@ -93,7 +105,7 @@ func myChangeOrder(c *common.Ctx, next bool) error {
 	c.UpdateMenu(
 		s,
 		tb.ModeHTML,
-		myOrdersKeyboard(newOID),
+		myOrdersKeyboard(newOID, hasPrevious, hasNext),
 	)
 	return nil
 }

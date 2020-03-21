@@ -154,21 +154,21 @@ func changeOrder(c *common.Ctx, next bool) error {
 	return nil
 }
 
-func NextOrder(c *common.Ctx) {
+func ChooseNext(c *common.Ctx) {
 	err := changeOrder(c, true)
 	if err != nil {
 		c.HandleErr(err)
 	}
 }
 
-func PreviousOrder(c *common.Ctx) {
+func ChoosePrevious(c *common.Ctx) {
 	err := changeOrder(c, false)
 	if err != nil {
 		c.HandleErr(err)
 	}
 }
 
-func ChooseOrder(c *common.Ctx) {
+func ChooseConfirm(c *common.Ctx) {
 	orderID, err := strconv.Atoi(c.Callback.Data)
 	if err != nil {
 		c.HandleErr(err)
@@ -202,6 +202,28 @@ func ChooseOrder(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
+	var previous, next []models.Order
+	var hasPrevious, hasNext bool
+	// Try to find previous
+	if err := myFind(c.Db, myFindArgs{
+		orderID: int(order.ID),
+		next:    false,
+	}).Find(&previous).Error; err != nil {
+		c.HandleErr(err)
+		return
+	}
+	hasPrevious = len(previous) > 1
+
+	// Try to find next
+	if err := myFind(c.Db, myFindArgs{
+		orderID: int(order.ID),
+		next:    true,
+	}).Find(&next).Error; err != nil {
+		c.HandleErr(err)
+		return
+	}
+	hasNext = len(next) > 1
+
 	c.SetState("volunteer/my")
 	c.UpdateMenu(
 		`🛍 <b>Hai preso questo ordine!</b>
@@ -210,6 +232,6 @@ Ora sarà visibile dalla lista 'I miei ordini'
 
 `+s,
 		tb.ModeHTML,
-		myOrdersKeyboard(orderID),
+		myOrdersKeyboard(orderID, hasPrevious, hasNext),
 	)
 }
