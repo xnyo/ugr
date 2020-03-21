@@ -237,6 +237,12 @@ func ChooseConfirm(c *common.Ctx) {
 		return
 	}
 
+	err = c.LogToChan(c.Sign("🛍 <b>Ordine assegnato</b>\n\n"+s), tb.ModeHTML)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+
 	c.SetState("volunteer/my")
 	c.UpdateMenu(
 		`🛍 <b>Hai preso questo ordine!</b>

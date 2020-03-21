@@ -207,10 +207,10 @@ func AddOrderAttachmentsEnd(c *common.Ctx) {
 	}
 	c.SetState("admin/add_order/end")
 	msg := "✅ <b>Ordine memorizzato!</b>\n\n🛒 <u>Riepilogo ordine</u>\n" + summary
-	c.UpdateMenu(msg, BackReplyMarkup, tb.ModeHTML)
-
 	err = c.LogToChan(c.Sign(msg), tb.ModeHTML)
 	if err != nil {
-		panic(err)
+		c.HandleErr(err)
+		return
 	}
+	c.UpdateMenu(msg, BackReplyMarkup, tb.ModeHTML)
 }

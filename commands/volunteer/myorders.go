@@ -265,6 +265,19 @@ func MyDone(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
+
+	// Log
+	s, err := order.ToTelegram(c.Db)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+	err = c.LogToChan(c.Sign("😁 <b>Ordine completato</b>\n\n"+s), tb.ModeHTML)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+
 	c.SetState("volunteer/my/done")
 	c.UpdateMenu(
 		"**L'ordine è stato segnato come completato!**\nGrazie per aver collaborato! 😄",
@@ -284,6 +297,18 @@ func MyCancel(c *common.Ctx) {
 		return
 	}
 	if !run {
+		return
+	}
+
+	// Log
+	s, err := order.ToTelegram(c.Db)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+	err = c.LogToChan(c.Sign("😞 <b>Ordine abbandonato</b>\n\n"+s), tb.ModeHTML)
+	if err != nil {
+		c.HandleErr(err)
 		return
 	}
 
