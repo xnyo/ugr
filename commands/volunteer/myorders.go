@@ -17,6 +17,19 @@ type myFindArgs struct {
 	first   bool
 }
 
+// myFind builds a gorm query that looks for either:
+// - The first pending order assigned to the current user
+// - The next order
+// - The previous order
+// The query always has a "LIMIT 2"
+// The result can be:
+// - An empty slice. In this case, there's no (next/previous) order
+// - A slice of length 1. In this case, there's a (next/previous) order,
+// but there's not another one in the same "direction"
+// - A slice of length 2. In this case, the element at index 0 is the
+// next (previous) order that comes after (before) args.orderID, and the
+// element at index 1 is the element that comes after (before) the element
+// at index 0.
 func myFind(db *gorm.DB, args myFindArgs) *gorm.DB {
 	r := db.Where(&models.Order{
 		AssignedUserID: args.userID,
@@ -32,6 +45,7 @@ func myFind(db *gorm.DB, args myFindArgs) *gorm.DB {
 	return r.Limit(2)
 }
 
+// MyOrders fetches the order assigned to the current user
 func MyOrders(c *common.Ctx) {
 	var orders []models.Order
 	uid := uint(c.DbUser.TelegramID)
@@ -61,6 +75,8 @@ func MyOrders(c *common.Ctx) {
 	c.UpdateMenu(s, myOrdersKeyboard(int(orders[0].ID), false, l > 1), tb.ModeHTML)
 }
 
+// myChangeOrder changes the order displayed in the "my orders"
+// panel held by the current ctx with the next (previous) order
 func myChangeOrder(c *common.Ctx, next bool) error {
 	payloadOID, err := strconv.Atoi(c.Callback.Data)
 	if err != nil {
@@ -110,6 +126,7 @@ func myChangeOrder(c *common.Ctx, next bool) error {
 	return nil
 }
 
+// MyNext handles the "->" inline button of the "my orders" menu
 func MyNext(c *common.Ctx) {
 	err := myChangeOrder(c, true)
 	if err != nil {
@@ -117,6 +134,7 @@ func MyNext(c *common.Ctx) {
 	}
 }
 
+// MyNext handles the "<-" inline button of the "my orders" menu
 func MyPrevious(c *common.Ctx) {
 	err := myChangeOrder(c, false)
 	if err != nil {

@@ -28,6 +28,7 @@ func ChooseOrderStart(c *common.Ctx) {
 	)
 }
 
+// ChooseOrderZone is the raw text handler to choose the zone
 func ChooseOrderZone(c *common.Ctx) {
 	// Fetch area
 	// TODO: use changeOrder somehow. Repeated code :(
@@ -81,6 +82,8 @@ func ChooseOrderZone(c *common.Ctx) {
 	)
 }
 
+// changeOrder changes the current "choose order" menu with
+// the next/previous one.
 func changeOrder(c *common.Ctx, next bool) error {
 	payload := strings.Split(c.Callback.Data, "|")
 	if len(payload) != 2 {
@@ -154,6 +157,7 @@ func changeOrder(c *common.Ctx, next bool) error {
 	return nil
 }
 
+// ChooseNext handles the "->" inline button in the choose order panel
 func ChooseNext(c *common.Ctx) {
 	err := changeOrder(c, true)
 	if err != nil {
@@ -161,6 +165,7 @@ func ChooseNext(c *common.Ctx) {
 	}
 }
 
+// ChoosePrevious handles the "<-" inline button in the choose order panel
 func ChoosePrevious(c *common.Ctx) {
 	err := changeOrder(c, false)
 	if err != nil {
@@ -168,6 +173,7 @@ func ChoosePrevious(c *common.Ctx) {
 	}
 }
 
+// ChooseConfirm assigns a order to the current volunteer
 func ChooseConfirm(c *common.Ctx) {
 	orderID, err := strconv.Atoi(c.Callback.Data)
 	if err != nil {

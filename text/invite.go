@@ -16,5 +16,9 @@ const (
 )
 
 func invite(what string) string { return fmt.Sprintf("%s __%s__%s", invitePrefix, what, inviteSuffix) }
-func InviteVolunteer() string   { return invite(volunteer) }
-func InviteAdmin() string       { return invite(admin) }
+
+// InviteVolunteer returns the text that is displayed when inviting a volunteer
+func InviteVolunteer() string { return invite(volunteer) }
+
+// InviteAdmin returns the text that is displayed when inviting an admin
+func InviteAdmin() string { return invite(admin) }
