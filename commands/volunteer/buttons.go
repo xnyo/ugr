@@ -42,11 +42,13 @@ func myOrdersNext(orderID int) tb.InlineButton {
 }
 
 func myOrdersKeyboard(orderID int, hasPrevious, hasNext bool) *tb.ReplyMarkup {
+	oof := fmt.Sprintf("user__my_done|%d|0", orderID)
+	fmt.Printf("OOF %s\n", oof)
 	k := &tb.ReplyMarkup{
 		InlineKeyboard: [][]tb.InlineButton{
 			{},
 			{
-				{Text: "✅ Completato", Unique: fmt.Sprintf("user__my_done|%d|0", orderID)},
+				{Text: "✅ Completato", Unique: oof},
 				{Text: "😞 Rinuncia", Unique: fmt.Sprintf("user__my_cancel|%d|0", orderID)},
 			},
 			{BackReplyButton},
@@ -57,6 +59,9 @@ func myOrdersKeyboard(orderID int, hasPrevious, hasNext bool) *tb.ReplyMarkup {
 	}
 	if hasNext {
 		k.InlineKeyboard[0] = append(k.InlineKeyboard[0], myOrdersNext(orderID))
+	}
+	if !hasPrevious && !hasNext {
+		k.InlineKeyboard = k.InlineKeyboard[1:]
 	}
 	return k
 }

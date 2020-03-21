@@ -153,7 +153,7 @@ func MyNext(c *common.Ctx) {
 	}
 }
 
-// MyNext handles the "<-" inline button of the "my orders" menu
+// MyPrevious handles the "<-" inline button of the "my orders" menu
 func MyPrevious(c *common.Ctx) {
 	err := myChangeOrder(c, false)
 	if err != nil {
@@ -161,50 +161,115 @@ func MyPrevious(c *common.Ctx) {
 	}
 }
 
-func MyDone(c *common.Ctx) {
+type confirmation struct {
+	text        string
+	yesCbUnique string
+	noCbUnique  string
+}
+
+func orderOpWithConfirm(c *common.Ctx, confirmationArgs confirmation) (bool, *models.Order, error) {
 	parts := strings.Split(c.Callback.Data, "|")
 	if len(parts) == 0 {
-		c.HandleErr(common.IllegalPayloadReportableError)
-		return
+		return false, nil, common.IllegalPayloadReportableError
 	}
 	orderID, err := strconv.Atoi(parts[0])
 	if err != nil {
-		c.HandleErr(common.IllegalPayloadReportableError)
-		return
+		return false, nil, common.IllegalPayloadReportableError
 	}
 	definitive, err := strconv.ParseBool(parts[1])
 	if err != nil {
-		c.HandleErr(common.IllegalPayloadReportableError)
-		return
+		return false, nil, common.IllegalPayloadReportableError
 	}
 
 	// Make sure the order exists
 	order, err := getPendingOrderFor(c.Db, uint(orderID), uint(c.DbUser.TelegramID))
 	if err != nil {
-		c.HandleErr(err)
-		return
+		return false, nil, err
 	}
 	if order == nil {
-		c.HandleErr(common.ReportableError{T: "L'ordine non esiste."})
-		return
+		return false, nil, common.ReportableError{T: "L'ordine non esiste."}
 	}
 
-	// Ok
-	if !definitive {
-		// Ask for confirmation
-		c.UpdateMenu(
-			"❓ **Sei sicuro di voler segnare questo ordine come completato?**",
-			&tb.ReplyMarkup{
-				InlineKeyboard: [][]tb.InlineButton{
+	if definitive {
+		// Run!
+		return true, order, nil
+	}
+
+	// Confirmation
+	c.UpdateMenu(
+		confirmationArgs.text,
+		&tb.ReplyMarkup{
+			InlineKeyboard: [][]tb.InlineButton{
+				{
 					{
-						{Unique: fmt.Sprintf("user__my_done|%d|1", orderID), Text: "👍 Sì"},
-						{Unique: "user__my_orders", Text: "👎 No"},
+						Unique: fmt.Sprintf("%s|%d|1", confirmationArgs.yesCbUnique, orderID),
+						Text:   "👍 Sì",
+					},
+					{
+						Unique: confirmationArgs.noCbUnique,
+						Text:   "👎 No",
 					},
 				},
 			},
-			tb.ModeMarkdown,
-		)
-	} else {
-		// Delete for real
+		},
+		tb.ModeMarkdown,
+	)
+	return false, order, nil
+}
+
+// MyDone completes an order (handles confirmation as well)
+func MyDone(c *common.Ctx) {
+	run, order, err := orderOpWithConfirm(c, confirmation{
+		text:        "❓ **Sei sicuro di voler segnare questo ordine come completato?**",
+		yesCbUnique: "user__my_done",
+		noCbUnique:  "user__my_orders",
+	})
+	if err != nil {
+		c.HandleErr(err)
+		return
 	}
+	if !run {
+		return
+	}
+
+	// Complete for real
+	if err := c.Db.Model(&order).Updates(&models.Order{
+		Status: models.OrderStatusDone,
+	}).Error; err != nil {
+		c.HandleErr(err)
+		return
+	}
+	c.SetState("volunteer/my/done")
+	c.UpdateMenu(
+		"**L'ordine è stato segnato come completato!**\nGrazie per aver collaborato! 😄",
+		BackReplyMarkup,
+		tb.ModeMarkdown,
+	)
+}
+
+func MyCancel(c *common.Ctx) {
+	run, order, err := orderOpWithConfirm(c, confirmation{
+		text:        "❓ **Sei sicuro di voler abbandonare questo ordine?**",
+		yesCbUnique: "user__my_cancel",
+		noCbUnique:  "user__my_orders",
+	})
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+	if !run {
+		return
+	}
+
+	// Cancel
+	if err := c.Db.Model(&order).Update("assigned_user_id", nil).Error; err != nil {
+		c.HandleErr(err)
+		return
+	}
+	c.SetState("volunteer/my/cancelled")
+	c.UpdateMenu(
+		"😞 **Hai abbandonato l'ordine**",
+		BackReplyMarkup,
+		tb.ModeMarkdown,
+	)
 }
