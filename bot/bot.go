@@ -203,6 +203,7 @@ func Start() {
 	B.Handle("\fadmin__remove_admin", notAvailable)
 	B.Handle("\fadmin__ban", notAvailable)
 	B.Handle("\fadmin__users", notAvailable)
+	B.Handle("\fadmin__orders", notAvailable)
 
 	// Admin -- orders
 	B.Handle(
