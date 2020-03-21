@@ -42,22 +42,22 @@ func Menu(c *common.Ctx) {
 				},
 				{
 					{
+						InlineQuery: "volunteer",
+						Text:        "🛵 Aggiungi volontario",
+					},
+					{
+						InlineQuery: "admin",
+						Text:        "👑 Aggiungi admin",
+					},
+				},
+				{
+					{
 						Unique: "admin__ban",
 						Text:   "💣 Banna utente",
 					},
 					{
 						Unique: "admin__users",
 						Text:   "👨‍👩‍👧‍👦 Lista utenti",
-					},
-				},
-				{
-					{
-						Unique: "admin__add_admin",
-						Text:   "👑 Aggiungi admin",
-					},
-					{
-						Unique: "admin__remove_admin",
-						Text:   "👋 Rimuovi admin",
 					},
 				},
 				{
