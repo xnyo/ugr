@@ -230,6 +230,13 @@ func ChooseConfirm(c *common.Ctx) {
 	}
 	hasNext = len(next) > 1
 
+	// Find photos
+	photos, err := getPhotos(c.Db, &order)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+
 	c.SetState("volunteer/my")
 	c.UpdateMenu(
 		`🛍 <b>Hai preso questo ordine!</b>
@@ -238,6 +245,6 @@ Ora sarà visibile dalla lista 'I miei ordini'
 
 `+s,
 		tb.ModeHTML,
-		myOrdersKeyboard(orderID, hasPrevious, hasNext),
+		myOrdersKeyboard(orderID, hasPrevious, hasNext, len(*photos) > 0),
 	)
 }

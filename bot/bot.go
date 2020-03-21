@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"time"
 
@@ -156,6 +157,28 @@ func Start() {
 			},
 		}.BaseWrapCb(),
 	)
+	B.Handle(
+		"\fn",
+		Handler{
+			F: func(c *common.Ctx) {
+				// TODO: consider moving album message ids in db,
+				// there's a 64 characters limit in the callback query
+				messages := strings.Split(c.Callback.Data, "|")
+				for _, v := range messages {
+					id, err := strconv.Atoi(v)
+					if err != nil {
+						continue
+					}
+					c.B.Delete(&tb.Message{ID: id, Chat: c.Message.Chat})
+
+					// So we avoid spamming telegram...
+					time.Sleep(time.Millisecond * 500)
+				}
+				c.Respond(&tb.CallbackResponse{Text: "🗑"})
+				c.B.Delete(c.Message)
+			},
+		}.BaseWrapCb(),
+	)
 
 	// Admin -- areas
 	B.Handle(
@@ -228,6 +251,7 @@ note aggiuntive (anche più righe)</code>`,
 	B.Handle("\fuser__my_next", Handler{F: volunteer.MyNext, P: privileges.Normal, S: "volunteer/my"}.BaseWrapCb())
 	B.Handle("\fuser__my_done", Handler{F: volunteer.MyDone, P: privileges.Normal, S: "volunteer/my"}.BaseWrapCb())
 	B.Handle("\fuser__my_cancel", Handler{F: volunteer.MyCancel, P: privileges.Normal, S: "volunteer/my"}.BaseWrapCb())
+	B.Handle("\fuser__my_photos", Handler{F: volunteer.MyPhotos, P: privileges.Normal, S: "volunteer/my"}.BaseWrapCb())
 
 	// Inline handler (invites)
 	B.Handle(tb.OnQuery, Handler{F: admin.InlineInviteHandler}.BaseWrapQ())

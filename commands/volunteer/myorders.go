@@ -64,6 +64,18 @@ func getPendingOrderFor(db *gorm.DB, orderID, userID uint) (*models.Order, error
 	return &order, nil
 }
 
+func getPhotos(db *gorm.DB, order *models.Order) (*[]models.Photo, error) {
+	var photos []models.Photo
+	if err := db.Model(
+		&order,
+	).Association(
+		"Photos",
+	).Find(&photos).Error; err != nil {
+		return nil, err
+	}
+	return &photos, nil
+}
+
 // MyOrders fetches the order assigned to the current user
 func MyOrders(c *common.Ctx) {
 	var orders []models.Order
@@ -84,6 +96,13 @@ func MyOrders(c *common.Ctx) {
 		return
 	}
 
+	// Get photos
+	photos, err := getPhotos(c.Db, &orders[0])
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+
 	// Determine if we have multiple orders
 	c.SetState("volunteer/my")
 	s, err := orders[0].ToTelegram(c.Db)
@@ -91,7 +110,7 @@ func MyOrders(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
-	c.UpdateMenu(s, myOrdersKeyboard(int(orders[0].ID), false, l > 1), tb.ModeHTML)
+	c.UpdateMenu(s, myOrdersKeyboard(int(orders[0].ID), false, l > 1, len(*photos) > 0), tb.ModeHTML)
 }
 
 // myChangeOrder changes the order displayed in the "my orders"
@@ -137,10 +156,17 @@ func myChangeOrder(c *common.Ctx, next bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Photos
+	photos, err := getPhotos(c.Db, &orders[0])
+	if err != nil {
+		return err
+	}
+
 	c.UpdateMenu(
 		s,
 		tb.ModeHTML,
-		myOrdersKeyboard(newOID, hasPrevious, hasNext),
+		myOrdersKeyboard(newOID, hasPrevious, hasNext, len(*photos) > 0),
 	)
 	return nil
 }
@@ -272,4 +298,87 @@ func MyCancel(c *common.Ctx) {
 		BackReplyMarkup,
 		tb.ModeMarkdown,
 	)
+}
+
+func MyPhotos(c *common.Ctx) {
+	// Read payload
+	orderID, err := strconv.Atoi(c.Callback.Data)
+	if err != nil {
+		c.HandleErr(common.IllegalPayloadReportableError)
+		return
+	}
+
+	// Make sure the order exists
+	order, err := getPendingOrderFor(c.Db, uint(orderID), uint(c.DbUser.TelegramID))
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+	if order == nil {
+		c.HandleErr(common.ReportableError{T: "L'ordine non esiste."})
+		return
+	}
+
+	// Get photos
+	photos, err := getPhotos(c.Db, order)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+	if len(*photos) == 0 {
+		c.HandleErr(common.ReportableError{T: "Non ci sono foto associate a questo ordine."})
+		return
+	}
+
+	// Summary
+	summary, err := order.ToTelegram(c.Db)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+
+	// Build album
+	var album tb.Album
+	for _, v := range *photos {
+		album = append(album, &tb.Photo{
+			File: tb.File{FileID: v.FileID},
+		})
+	}
+	msgs, err := c.B.SendAlbum(
+		c.TelegramUser(),
+		album,
+	)
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+
+	// Reply (for reply markup & info)
+	var messageIDs []string
+	var replyMarkup *tb.ReplyMarkup
+	for _, m := range msgs {
+		messageIDs = append(messageIDs, strconv.Itoa(m.ID))
+	}
+	ids := strings.Join(messageIDs, "|")
+	if len(ids) > 60 {
+		// Limit is 64 chars 😱!
+		replyMarkup = nil
+	} else {
+		// Limit ok
+		replyMarkup = &tb.ReplyMarkup{
+			InlineKeyboard: [][]tb.InlineButton{
+				{
+					{Text: "🗑 Elimina foto", Unique: "n|" + ids},
+				},
+				{BackReplyButton},
+			},
+		}
+	}
+	c.B.Reply(
+		&msgs[0],
+		"☝️ Ecco le foto! ☝️\n\n"+summary,
+		replyMarkup,
+		tb.ModeHTML,
+	)
+	c.Respond(&tb.CallbackResponse{Text: "👇 Foto inviate! 👇"})
 }
