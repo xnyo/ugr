@@ -8,7 +8,36 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+var unknownErrorCallbackResponse *tb.CallbackResponse = &tb.CallbackResponse{
+	Text:      "Errore sconosciuto",
+	ShowAlert: true,
+}
+var invalidInviteCallbackResponse *tb.CallbackResponse = &tb.CallbackResponse{
+	Text:      "Invito non valido.",
+	ShowAlert: true,
+}
+
 func handleInvite(c *common.Ctx, p privileges.Privileges) {
+	// Note: we cannot use c.HandleErr here because this needs
+	// feedback in the PM chat, not in the bot chat.
+
+	// Make sure the invite was sent by an admin!
+	var invitedBy models.User
+	if err := c.Db.Where(&models.User{
+		TelegramID: c.Callback.Message.Sender.ID,
+	}).First(&invitedBy).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.Respond(invalidInviteCallbackResponse)
+		} else {
+			c.Respond(unknownErrorCallbackResponse)
+		}
+		return
+	}
+	if invitedBy.Privileges&privileges.Admin == 0 {
+		c.Respond(invalidInviteCallbackResponse)
+		return
+	}
+
 	// Register the user if necessary
 	var new bool
 	if c.DbUser == nil {
