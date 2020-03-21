@@ -19,3 +19,14 @@ func GetMD5Hash(text string) string {
 	hasher.Write([]byte(text))
 	return hex.EncodeToString(hasher.Sum(nil))
 }
+
+// FindString takes a slice and looks for an element in it. If found it will
+// return its index, otherwise it will return -1 and false.
+func FindString(haystack []string, needle string) (int, bool) {
+	for i, v := range haystack {
+		if v == needle {
+			return i, true
+		}
+	}
+	return -1, false
+}

@@ -15,3 +15,8 @@ func (e ReportableError) Error() string {
 func (e ReportableError) Report(c *Ctx) {
 	c.Report(e.T)
 }
+
+// Some std errors
+var (
+	IllegalPayloadReportableError ReportableError = ReportableError{T: "Illegal payload"}
+)

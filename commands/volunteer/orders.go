@@ -87,7 +87,7 @@ func ChooseOrderZone(c *common.Ctx) {
 func changeOrder(c *common.Ctx, next bool) error {
 	payload := strings.Split(c.Callback.Data, "|")
 	if len(payload) != 2 {
-		return common.ReportableError{T: "Illegal payload"}
+		return common.IllegalPayloadReportableError
 	}
 	payloadAID, err := strconv.Atoi(payload[0])
 	if err != nil {

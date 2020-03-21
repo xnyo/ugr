@@ -124,6 +124,18 @@ func fsm(f CommandHandler, requiredState string) CommandHandler {
 	}
 }
 
+// fsmMultiple is like fsm, but allows for multiple states
+func fsmMultiple(f CommandHandler, states []string) CommandHandler {
+	return func(c *common.Ctx) {
+		_, ok := common.FindString(states, c.DbUser.State)
+		if !ok {
+			log.Printf("%v (%v) does not have the required state (%v) to trigger %v", c.DbUser.TelegramID, c.DbUser.State, states, f)
+			return
+		}
+		f(c)
+	}
+}
+
 func textPrompt(message string, newState string, clearStateData bool, options ...interface{}) CommandHandler {
 	return func(c *common.Ctx) {
 		if clearStateData {
@@ -173,6 +185,9 @@ type Handler struct {
 	// If not zero, add a fsm() decorator
 	// with the provided state
 	S string
+
+	// Multiple states. This has priority over "S"
+	SS []string
 }
 
 func (h *Handler) wrap() {
@@ -181,7 +196,9 @@ func (h *Handler) wrap() {
 	} else if h.P < 0 {
 		h.F = guestsOnly(h.F)
 	}
-	if h.S != "" {
+	if len(h.SS) > 0 {
+		h.F = fsmMultiple(h.F, h.SS)
+	} else if h.S != "" {
 		h.F = fsm(h.F, h.S)
 	}
 }

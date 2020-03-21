@@ -1,7 +1,9 @@
 package volunteer
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	"github.com/xnyo/ugr/common"
@@ -43,6 +45,23 @@ func myFind(db *gorm.DB, args myFindArgs) *gorm.DB {
 		}
 	}
 	return r.Limit(2)
+}
+
+func getPendingOrderFor(db *gorm.DB, orderID, userID uint) (*models.Order, error) {
+	var order models.Order
+	uID := uint(userID)
+	if err := db.Where(&models.Order{
+		AssignedUserID: &uID,
+		Status:         models.OrderStatusPending,
+	}).Where(
+		"id = ?", orderID,
+	).First(&order).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &order, nil
 }
 
 // MyOrders fetches the order assigned to the current user
@@ -139,5 +158,53 @@ func MyPrevious(c *common.Ctx) {
 	err := myChangeOrder(c, false)
 	if err != nil {
 		c.HandleErr(err)
+	}
+}
+
+func MyDone(c *common.Ctx) {
+	parts := strings.Split(c.Callback.Data, "|")
+	if len(parts) == 0 {
+		c.HandleErr(common.IllegalPayloadReportableError)
+		return
+	}
+	orderID, err := strconv.Atoi(parts[0])
+	if err != nil {
+		c.HandleErr(common.IllegalPayloadReportableError)
+		return
+	}
+	definitive, err := strconv.ParseBool(parts[1])
+	if err != nil {
+		c.HandleErr(common.IllegalPayloadReportableError)
+		return
+	}
+
+	// Make sure the order exists
+	order, err := getPendingOrderFor(c.Db, uint(orderID), uint(c.DbUser.TelegramID))
+	if err != nil {
+		c.HandleErr(err)
+		return
+	}
+	if order == nil {
+		c.HandleErr(common.ReportableError{T: "L'ordine non esiste."})
+		return
+	}
+
+	// Ok
+	if !definitive {
+		// Ask for confirmation
+		c.UpdateMenu(
+			"❓ **Sei sicuro di voler segnare questo ordine come completato?**",
+			&tb.ReplyMarkup{
+				InlineKeyboard: [][]tb.InlineButton{
+					{
+						{Unique: fmt.Sprintf("user__my_done|%d|1", orderID), Text: "👍 Sì"},
+						{Unique: "user__my_orders", Text: "👎 No"},
+					},
+				},
+			},
+			tb.ModeMarkdown,
+		)
+	} else {
+		// Delete for real
 	}
 }
