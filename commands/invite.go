@@ -18,56 +18,75 @@ var invalidInviteCallbackResponse *tb.CallbackResponse = &tb.CallbackResponse{
 }
 
 func handleInvite(c *common.Ctx, p privileges.Privileges) {
-	// Note: we cannot use c.HandleErr here because this needs
-	// feedback in the PM chat, not in the bot chat.
+	// Operate in NoMenu mode, so we can use c.HandleErr()
+	// as it will not update the menu (there's no menu!)
+	c.NoMenu = true
 
-	// Make sure the invite was sent by an admin!
-	var invitedBy models.User
-	if err := c.Db.Where(&models.User{
-		TelegramID: c.Callback.Message.Sender.ID,
-	}).First(&invitedBy).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.Respond(invalidInviteCallbackResponse)
+	// Make sure the invite is valid
+	err := c.Db.Transaction(func(tx *gorm.DB) error {
+		var invite models.Invite
+		var requiredType models.InviteType
+		if p&privileges.Admin > 0 {
+			requiredType = models.InviteTypeAdmin
 		} else {
-			c.Respond(unknownErrorCallbackResponse)
+			requiredType = models.InviteTypeVolunteer
 		}
-		return
-	}
-	if invitedBy.Privileges&privileges.Admin == 0 {
-		c.Respond(invalidInviteCallbackResponse)
-		return
+		if err := tx.Where(&models.Invite{
+			Token: c.Callback.Data,
+			Type:  requiredType,
+		}).First(&invite).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				return common.ReportableError{T: "Invito non valido."}
+			}
+			return err
+		}
+
+		// Make sure the issuer is not dumb and clicking the button
+		if invite.IssuedBy == c.Callback.Sender.ID {
+			return common.ReportableError{T: "Non puoi accettare il tuo invito."}
+		}
+
+		// Register the user if necessary
+		var new bool
+		if c.DbUser == nil {
+			// We use this instead of always adding
+			// so we avoid duplicate primary key errors
+			// in case of concurrency
+			var user models.User
+			if err := tx.Where(&models.User{
+				TelegramID: c.TelegramUser().ID,
+			}).Attrs(&models.User{
+				TelegramID: c.TelegramUser().ID,
+				Privileges: privileges.Normal,
+			}).FirstOrCreate(&user).Error; err != nil {
+				return err
+			}
+			c.DbUser = &user
+			new = true
+		}
+		if !new || p != privileges.Normal {
+			// Extra privileges needed, update privileges
+			if err := tx.Model(&c.DbUser).Update("privileges", gorm.Expr("privileges | ?", p)).Error; err != nil {
+				return err
+			}
+		}
+
+		// Invalidate invite
+		return tx.Delete(&invite).Error
+	})
+	if err != nil {
+		c.HandleErr(err)
+	} else {
+		c.B.Edit(
+			c.Callback.Message,
+			"👍 **Invito accettato!**",
+			tb.ModeMarkdown,
+			&tb.ReplyMarkup{
+				InlineKeyboard: [][]tb.InlineButton{{{Text: "🤖 Vai al bot", URL: "https://t.me/ugr27bot"}}},
+			},
+		)
 	}
 
-	// Register the user if necessary
-	var new bool
-	if c.DbUser == nil {
-		// We use this instead of always adding
-		// so we avoid duplicate primary key errors
-		// in case of concurrency
-		var user models.User
-		if err := c.Db.Model(&models.User{
-			TelegramID: c.TelegramUser().ID,
-		}).Attrs(&models.User{
-			TelegramID: c.TelegramUser().ID,
-			Privileges: privileges.Normal,
-		}).FirstOrCreate(&user).Error; err != nil {
-			c.HandleErr(err)
-			return
-		}
-		c.DbUser = &user
-		new = true
-	}
-
-	if !new || p != privileges.Normal {
-		// Extra privileges needed, update privileges
-		if err := c.Db.Model(&c.DbUser).Update("privileges", gorm.Expr("privileges | ?", p)).Error; err != nil {
-			c.HandleErr(err)
-			return
-		}
-	}
-
-	// Normal privileges, no need to update privileges on new records
-	c.B.Edit(c.Callback.Message, "👍 **Invito accettato!**", tb.ModeMarkdown, &tb.ReplyMarkup{})
 }
 
 // AcceptAdminInvite handles handle admin invites

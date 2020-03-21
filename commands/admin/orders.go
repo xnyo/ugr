@@ -11,6 +11,7 @@ import (
 	"github.com/xnyo/ugr/models"
 	"github.com/xnyo/ugr/statemodels"
 	"github.com/xnyo/ugr/text"
+	"github.com/xnyo/ugr/utils"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -29,7 +30,7 @@ func AddOrderData(c *common.Ctx) {
 	}
 	var notes *string
 	if l > 3 {
-		s := html.EscapeString(common.TruncateString(parts[3], 512))
+		s := html.EscapeString(utils.TruncateString(parts[3], 512))
 		notes = &s
 	}
 

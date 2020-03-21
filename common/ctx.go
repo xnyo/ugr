@@ -2,7 +2,6 @@ package common
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/jinzhu/gorm"
@@ -19,6 +18,7 @@ type Ctx struct {
 	B           *tb.Bot
 	Db          *gorm.DB
 	DbUser      *models.User
+	NoMenu      bool
 }
 
 // TelegramUser returns the user user who send the callback, or the user who sent the message
@@ -54,17 +54,14 @@ func (c *Ctx) Report(txt string) {
 		})
 	} else if c.InlineQuery != nil {
 		// Inline query
-		results := tb.Results{
-			&tb.ArticleResult{
-				Title: txt,
-			},
-		}
-		// Make sure the id is unique
-		results[0].SetResultID(fmt.Sprintf("%s_%s", GetMD5Hash(txt), string(c.TelegramUser().ID)))
+		results := tb.Results{&tb.ArticleResult{Title: txt}}
 		results[0].SetContent(&tb.InputTextMessageContent{Text: "⛔"})
-		c.B.Answer(c.InlineQuery, &tb.QueryResponse{Results: results})
+		c.AnswerNoCache(&tb.QueryResponse{Results: results})
+	} else if c.NoMenu {
+		// Message -- no menu
+		c.Reply(txt)
 	} else {
-		// Message
+		// Message -- menu
 		c.UpdateMenu(
 			txt,
 			&tb.ReplyMarkup{
@@ -97,8 +94,15 @@ func (c *Ctx) UpdateMenu(what interface{}, options ...interface{}) (*tb.Message,
 }
 
 // Respond responds to the callback query held by the current ctx
-func (c *Ctx) Respond(r ...*tb.CallbackResponse) {
-	c.B.Respond(c.Callback, r...)
+func (c *Ctx) Respond(r ...*tb.CallbackResponse) error {
+	return c.B.Respond(c.Callback, r...)
+}
+
+// AnswerNoCache answers to an inline query, with no cache
+func (c *Ctx) AnswerNoCache(r *tb.QueryResponse) error {
+	r.CacheTime = 1
+	r.IsPersonal = true
+	return c.B.Answer(c.InlineQuery, r)
 }
 
 // SetState updates the state of the user held by the current Ctx
@@ -166,20 +170,37 @@ func (c *Ctx) HandleErr(err error) {
 		v.Report(c)
 	default:
 		{
-			// Unhandled error
-			if c.DbUser != nil {
-				c.SetState("error")
+			if c.InlineQuery != nil {
+				// Inline query, we cannot use menu!
+				// We must report the error via inline results
+				// NOT through the bot chat.
+				results := tb.Results{&tb.ArticleResult{Title: text.SessionError}}
+				results[0].SetContent(&tb.InputTextMessageContent{Text: "⛔"})
+				c.AnswerNoCache(&tb.QueryResponse{Results: results})
+			} else {
+				// Unhandled error
+				if c.DbUser != nil {
+					c.SetState("error")
+				}
+				c.Report(text.SessionError)
+				/* if c.NoMenu {
+					// No menu
+					c.Report(text.SessionError)
+				} else {
+					// Normal
+					c.UpdateMenu(
+						text.SessionError,
+						&tb.ReplyMarkup{
+							InlineKeyboard: [][]tb.InlineButton{{{
+								Unique: "volunteer",
+								Text:   text.MainMenu,
+							}}},
+						},
+						tb.ModeMarkdown,
+					)
+				} */
 			}
-			c.UpdateMenu(
-				text.SessionError,
-				&tb.ReplyMarkup{
-					InlineKeyboard: [][]tb.InlineButton{{{
-						Unique: "volunteer",
-						Text:   text.MainMenu,
-					}}},
-				},
-				tb.ModeMarkdown,
-			)
+
 			// TODO: Sentry
 			panic(err)
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/privileges"
 	"github.com/xnyo/ugr/text"
+	"github.com/xnyo/ugr/utils"
 	tb "gopkg.in/tucnak/telebot.v2"
 
 	"github.com/xnyo/ugr/models"
@@ -127,7 +128,7 @@ func fsm(f CommandHandler, requiredState string) CommandHandler {
 // fsmMultiple is like fsm, but allows for multiple states
 func fsmMultiple(f CommandHandler, states []string) CommandHandler {
 	return func(c *common.Ctx) {
-		_, ok := common.FindString(states, c.DbUser.State)
+		_, ok := utils.FindString(states, c.DbUser.State)
 		if !ok {
 			log.Printf("%v (%v) does not have the required state (%v) to trigger %v", c.DbUser.TelegramID, c.DbUser.State, states, f)
 			return
