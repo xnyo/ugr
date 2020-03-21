@@ -19,6 +19,8 @@ type Ctx struct {
 	Db          *gorm.DB
 	DbUser      *models.User
 	NoMenu      bool
+
+	LogChannelID int64
 }
 
 // TelegramUser returns the user user who send the callback, or the user who sent the message
@@ -205,4 +207,9 @@ func (c *Ctx) HandleErr(err error) {
 			panic(err)
 		}
 	}
+}
+
+// LogToChan sends a message to the log channel
+func (c *Ctx) LogToChan(what interface{}, options ...interface{}) {
+	c.B.Send(&tb.Chat{ID: c.LogChannelID}, what, options...)
 }

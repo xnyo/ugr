@@ -31,11 +31,12 @@ func NewCtx(m *tb.Message, cb *tb.Callback, q *tb.Query) common.Ctx {
 		m = cb.Message
 	}
 	return common.Ctx{
-		B:           B,
-		Db:          Db,
-		Message:     m,
-		Callback:    cb,
-		InlineQuery: q,
+		B:            B,
+		Db:           Db,
+		Message:      m,
+		Callback:     cb,
+		InlineQuery:  q,
+		LogChannelID: logChannelID,
 	}
 }
 
@@ -50,6 +51,8 @@ var PhotoHandlers map[string]CommandHandler = make(map[string]CommandHandler)
 
 // Db is the gorm db reference
 var Db *gorm.DB
+
+var logChannelID int64 = -1449367422
 
 // HandleText registers a new raw text handler
 // The handler is a CommandHandler, so it already
@@ -197,7 +200,6 @@ func Start() {
 	B.Handle("\fadmin__areas", Handler{F: admin.Areas, P: privileges.Admin, S: "admin"}.BaseWrapCb())
 
 	// Admin -- TODO
-	B.Handle("\fadmin__add_admin", notAvailable)
 	B.Handle("\fadmin__remove_admin", notAvailable)
 	B.Handle("\fadmin__ban", notAvailable)
 	B.Handle("\fadmin__users", notAvailable)
