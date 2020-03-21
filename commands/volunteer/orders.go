@@ -245,6 +245,6 @@ Ora sarà visibile dalla lista 'I miei ordini'
 
 `+s,
 		tb.ModeHTML,
-		myOrdersKeyboard(orderID, hasPrevious, hasNext, len(*photos) > 0),
+		myOrdersKeyboard(orderID, hasPrevious, hasNext, len(*photos)),
 	)
 }

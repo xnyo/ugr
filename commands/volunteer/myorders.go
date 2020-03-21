@@ -110,7 +110,7 @@ func MyOrders(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
-	c.UpdateMenu(s, myOrdersKeyboard(int(orders[0].ID), false, l > 1, len(*photos) > 0), tb.ModeHTML)
+	c.UpdateMenu(s, myOrdersKeyboard(int(orders[0].ID), false, l > 1, len(*photos)), tb.ModeHTML)
 }
 
 // myChangeOrder changes the order displayed in the "my orders"
@@ -166,7 +166,7 @@ func myChangeOrder(c *common.Ctx, next bool) error {
 	c.UpdateMenu(
 		s,
 		tb.ModeHTML,
-		myOrdersKeyboard(newOID, hasPrevious, hasNext, len(*photos) > 0),
+		myOrdersKeyboard(newOID, hasPrevious, hasNext, len(*photos)),
 	)
 	return nil
 }

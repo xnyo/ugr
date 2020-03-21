@@ -2,6 +2,8 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
+	"html"
 	"log"
 
 	"github.com/jinzhu/gorm"
@@ -20,7 +22,7 @@ type Ctx struct {
 	DbUser      *models.User
 	NoMenu      bool
 
-	LogChannelID int64
+	LogChannelID string
 }
 
 // TelegramUser returns the user user who send the callback, or the user who sent the message
@@ -210,6 +212,28 @@ func (c *Ctx) HandleErr(err error) {
 }
 
 // LogToChan sends a message to the log channel
-func (c *Ctx) LogToChan(what interface{}, options ...interface{}) {
-	c.B.Send(&tb.Chat{ID: c.LogChannelID}, what, options...)
+func (c *Ctx) LogToChan(what interface{}, options ...interface{}) error {
+	channel, err := c.B.ChatByID(c.LogChannelID)
+	if err != nil {
+		return err
+	}
+	_, err = c.B.Send(channel, what, options...)
+	return err
+}
+
+// Signature returns a string that contains
+// the name and username of the user held
+// by the current ctx
+func (c *Ctx) Signature() string {
+	return fmt.Sprintf(
+		"✒️ <code>%s %s</code> (@%s)",
+		html.EscapeString(c.TelegramUser().FirstName),
+		html.EscapeString(c.TelegramUser().LastName),
+		html.EscapeString(c.TelegramUser().Username),
+	)
+}
+
+// Sign takes msg and appends c.Signature() to it
+func (c *Ctx) Sign(msg string) string {
+	return msg + "\n\n" + c.Signature()
 }

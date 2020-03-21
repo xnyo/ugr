@@ -52,7 +52,7 @@ var PhotoHandlers map[string]CommandHandler = make(map[string]CommandHandler)
 // Db is the gorm db reference
 var Db *gorm.DB
 
-var logChannelID int64 = -1449367422
+var logChannelID string = "-1001449367422"
 
 // HandleText registers a new raw text handler
 // The handler is a CommandHandler, so it already

@@ -41,7 +41,7 @@ func myOrdersNext(orderID int) tb.InlineButton {
 	}
 }
 
-func myOrdersKeyboard(orderID int, hasPrevious, hasNext, hasPhotos bool) *tb.ReplyMarkup {
+func myOrdersKeyboard(orderID int, hasPrevious, hasNext bool, photos int) *tb.ReplyMarkup {
 	k := &tb.ReplyMarkup{
 		InlineKeyboard: [][]tb.InlineButton{
 			{},
@@ -58,14 +58,14 @@ func myOrdersKeyboard(orderID int, hasPrevious, hasNext, hasPhotos bool) *tb.Rep
 	if hasNext {
 		k.InlineKeyboard[0] = append(k.InlineKeyboard[0], myOrdersNext(orderID))
 	}
-	if hasPhotos {
+	if photos > 0 {
 		k.InlineKeyboard = append(
 			k.InlineKeyboard[:1],
 			append(
 				[][]tb.InlineButton{
 					{
 						{
-							Text:   "📷 Visualizza foto",
+							Text:   fmt.Sprintf("📷 Visualizza foto (%d)", photos),
 							Unique: fmt.Sprintf("user__my_photos|%d", orderID),
 						},
 					},
