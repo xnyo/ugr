@@ -72,7 +72,7 @@ func handleInvite(c *common.Ctx, p privileges.Privileges) {
 		}
 
 		// Invalidate invite
-		return tx.Delete(&invite).Error
+		return tx.Unscoped().Delete(&invite).Error
 	})
 	if err != nil {
 		c.HandleErr(err)
