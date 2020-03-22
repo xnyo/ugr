@@ -62,3 +62,13 @@ func RandomString(n int) string {
 
 	return sb.String()
 }
+
+// ContainsAll returns true if haystack contains all substrings in needles
+func ContainsAll(haystack string, needles []string) bool {
+	for _, v := range needles {
+		if !strings.Contains(haystack, v) {
+			return false
+		}
+	}
+	return true
+}
