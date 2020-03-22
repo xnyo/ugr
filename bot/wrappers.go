@@ -6,6 +6,8 @@ import (
 	"log"
 	"runtime/debug"
 
+	"github.com/getsentry/sentry-go"
+
 	"github.com/jinzhu/gorm"
 
 	"github.com/xnyo/ugr/common"
@@ -79,7 +81,17 @@ func handleErrors(f CommandHandler) CommandHandler {
 				default:
 					err = fmt.Errorf("%v - %#v", rec, rec)
 				}
+
+				// Log
 				log.Printf("ERROR !!!\n%v\n%s", err, string(debug.Stack()))
+
+				// Sentry logging
+				if c.HasSentry {
+					log.Printf("Reporting to sentry")
+					sentry.CaptureException(err)
+				}
+
+				// Telegram report
 				c.Report(text.ErrorOccurred)
 			}
 		}()

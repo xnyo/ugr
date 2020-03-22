@@ -2,12 +2,17 @@ package bot
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/getsentry/sentry-go"
+
+	"github.com/ilyakaznacheev/cleanenv"
 
 	"github.com/xnyo/ugr/text"
 
@@ -20,9 +25,11 @@ import (
 	"github.com/xnyo/ugr/common"
 	"github.com/xnyo/ugr/models"
 
-	// Register sqlite gorm dialect
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	tb "gopkg.in/tucnak/telebot.v2"
+
+	// Register sqlite gorm dialects
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 // NewCtx creates a new Ctx from a tb.Message pointer
@@ -36,7 +43,8 @@ func NewCtx(m *tb.Message, cb *tb.Callback, q *tb.Query) common.Ctx {
 		Message:      m,
 		Callback:     cb,
 		InlineQuery:  q,
-		LogChannelID: logChannelID,
+		LogChannelID: Config.LogChannelID,
+		HasSentry:    hasSentry,
 	}
 }
 
@@ -52,7 +60,10 @@ var PhotoHandlers map[string]CommandHandler = make(map[string]CommandHandler)
 // Db is the gorm db reference
 var Db *gorm.DB
 
-var logChannelID string = "-1001449367422"
+// Config is the current configuration
+var Config common.Configuration
+
+var hasSentry bool
 
 // HandleText registers a new raw text handler
 // The handler is a CommandHandler, so it already
@@ -81,6 +92,7 @@ func rawDispatch(dispatcher map[string]CommandHandler) CommandHandler {
 	}
 }
 
+// rawTextHandle handles text messages, matching them against the provided dispatcher
 func rawTextHandle(dispatcher map[string]CommandHandler) CommandHandler {
 	return func(c *common.Ctx) {
 		if c.DbUser != nil && strings.TrimSpace(c.Message.Text) == text.MainMenu {
@@ -109,13 +121,28 @@ func notAvailable(c *tb.Callback) {
 }
 
 // Initialize initizliaes the bot
-func Initialize(token string) error {
+func Initialize() error {
 	if B != nil {
 		return errors.New("Bot already initialized")
 	}
-	var err error
+
+	// Read and check config
+	err := cleanenv.ReadEnv(&Config)
+	if err != nil {
+		return fmt.Errorf("cannot read env config: %v", err)
+	}
+	if Config.Token == "" {
+		return errors.New("TOKEN env var must be set")
+	}
+	if Config.LogChannelID == "" {
+		log.Println("Warning: log channel not set.")
+	} else if !strings.HasPrefix(Config.LogChannelID, "-100") {
+		log.Println("Warning: log channel does not look like a channel.")
+	}
+
+	// Initialize telebot bot
 	B, err = tb.NewBot(tb.Settings{
-		Token:  token,
+		Token:  Config.Token,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	return err
@@ -124,6 +151,26 @@ func Initialize(token string) error {
 // Start starts the bot
 func Start() {
 	defer log.Println("Bot disposed, bye!")
+
+	// Sentry
+	if Config.SentryDSN == "" {
+		log.Println("Warning: Sentry is disabled")
+	} else {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn: Config.SentryDSN,
+		})
+		if err != nil {
+			log.Fatal(fmt.Errorf("sentry init: %v", err))
+		}
+		hasSentry = true
+
+		// Flush before closing
+		defer func() {
+			log.Printf("Flushing sentry")
+			sentry.Flush(5 * time.Second)
+		}()
+		log.Printf("Sentry initialized")
+	}
 
 	// SIGINT handler
 	c := make(chan os.Signal, 1)
@@ -136,12 +183,18 @@ func Start() {
 
 	// Db
 	var err error
-	Db, err = gorm.Open("sqlite3", "ugr.db")
+	Db, err = gorm.Open(Config.DbDriver, Config.DbDSN)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("gorm open: %v", err))
 	}
-	defer Db.Close()
-	Db.LogMode(true)
+	defer func() {
+		log.Println("Closing db connection")
+		Db.Close()
+	}()
+	if Config.Debug {
+		log.Println("Running in debug mode")
+		Db.LogMode(true)
+	}
 	Db.AutoMigrate(models.All...)
 
 	// Dummy handlers
@@ -264,7 +317,7 @@ note aggiuntive (anche più righe)</code>`,
 	B.Handle(tb.OnPhoto, Handler{F: rawDispatch(PhotoHandlers)}.BaseWrap())
 
 	// Start the bot (blocks the current goroutine)
-	log.Println("UGR")
+	log.Println("UGR started")
 	defer log.Println("Disposing bot")
 	B.Start()
 }

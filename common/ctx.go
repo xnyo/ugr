@@ -19,6 +19,7 @@ type Ctx struct {
 	InlineQuery *tb.Query
 	B           *tb.Bot
 	Db          *gorm.DB
+	HasSentry   bool
 	DbUser      *models.User
 	NoMenu      bool
 
@@ -117,34 +118,6 @@ func (c *Ctx) SetState(newState string) {
 	}
 }
 
-/* func (c *Ctx) AddStateData(key string, value interface{}) {
-	err := c.Db.Transaction(func(tx *gorm.DB) error {
-		var user *models.User
-		if err := tx.Where(c.DbUser).First(&user).Error; err != nil {
-			return err
-		}
-
-		stateData := make(map[string]interface{})
-		err := json.Unmarshal([]byte(user.StateData), stateData)
-		if err != nil {
-			panic(err)
-		}
-		stateData[key] = value
-		jsonData, err := json.Marshal(stateData)
-		if err != nil {
-			panic(err)
-		}
-		if err := tx.Model(&user).Update("state_data", string(jsonData)).Error; err != nil {
-			return err
-		}
-		c.DbUser = user
-		return nil
-	})
-	if err != nil {
-		panic(err)
-	}
-} */
-
 func (c *Ctx) ClearStateData() {
 	if err := c.Db.Model(&c.DbUser).Update("state_data", "{}").Error; err != nil {
 		panic(err)
@@ -187,25 +160,8 @@ func (c *Ctx) HandleErr(err error) {
 					c.SetState("error")
 				}
 				c.Report(text.SessionError)
-				/* if c.NoMenu {
-					// No menu
-					c.Report(text.SessionError)
-				} else {
-					// Normal
-					c.UpdateMenu(
-						text.SessionError,
-						&tb.ReplyMarkup{
-							InlineKeyboard: [][]tb.InlineButton{{{
-								Unique: "volunteer",
-								Text:   text.MainMenu,
-							}}},
-						},
-						tb.ModeMarkdown,
-					)
-				} */
 			}
 
-			// TODO: Sentry
 			panic(err)
 		}
 	}
@@ -213,6 +169,9 @@ func (c *Ctx) HandleErr(err error) {
 
 // LogToChan sends a message to the log channel
 func (c *Ctx) LogToChan(what interface{}, options ...interface{}) error {
+	if c.LogChannelID == "" {
+		return nil
+	}
 	channel, err := c.B.ChatByID(c.LogChannelID)
 	if err != nil {
 		return err
