@@ -1,12 +1,7 @@
 package bot
 
 import (
-	"errors"
-	"fmt"
 	"log"
-	"runtime/debug"
-
-	"github.com/getsentry/sentry-go"
 
 	"github.com/jinzhu/gorm"
 
@@ -70,27 +65,7 @@ func resolveUser(f CommandHandler) CommandHandler {
 func handleErrors(f CommandHandler) CommandHandler {
 	return func(c *common.Ctx) {
 		defer func() {
-			if rec := recover(); rec != nil {
-				// recover from panic 😱
-				var err error
-				switch rec := rec.(type) {
-				case string:
-					err = errors.New(rec)
-				case error:
-					err = rec
-				default:
-					err = fmt.Errorf("%v - %#v", rec, rec)
-				}
-
-				// Log
-				log.Printf("ERROR !!!\n%v\n%s", err, string(debug.Stack()))
-
-				// Sentry logging
-				if c.HasSentry {
-					log.Printf("Reporting to sentry")
-					sentry.CaptureException(err)
-				}
-
+			if common.Recover(recover(), c.HasSentry) != nil {
 				// Telegram report
 				c.Report(text.ErrorOccurred)
 			}

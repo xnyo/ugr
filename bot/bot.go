@@ -197,6 +197,9 @@ func Start() {
 	}
 	Db.AutoMigrate(models.All...)
 
+	// Tasks
+	go cleanExpired()
+
 	// Dummy handlers
 	B.Handle("/start", Handler{F: volunteer.Menu, P: privileges.Normal}.BaseWrap())
 	B.Handle("\fvolunteer", Handler{F: volunteer.Menu, P: privileges.Normal}.BaseWrapCb())
