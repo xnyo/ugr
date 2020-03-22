@@ -80,8 +80,8 @@ func (o Order) ToTelegram(dbOrArea interface{}) (string, error) {
 	if o.Expire == nil {
 		expire = "Nessuna"
 	} else {
-		expire = o.Expire.Format("02/01/2006 15:04")
-		if o.Expire.Before(time.Now()) {
+		expire = o.Expire.In(time.Local).Format("02/01/2006 15:04")
+		if o.Expire.Before(time.Now().UTC()) {
 			expiredWarning = "⚠️ <b>Attenzione! Questo ordine è scaduto.</b>\n\n"
 		}
 	}

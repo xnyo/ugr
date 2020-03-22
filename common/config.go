@@ -9,4 +9,5 @@ type Configuration struct {
 	LogChannelID string `env:"LOG_CHANNEL_ID"`
 	SentryDSN    string `env:"SENTRY_DSN"`
 	Debug        bool   `env:"DEBUG" env-default:"false"`
+	Timezone     string `env:"TIMEZONE" env-default:"UTC" env-description:"Timezone for input/output. UTC is used internally."`
 }

@@ -119,9 +119,9 @@ func AddOrderExpire(c *common.Ctx) {
 		c.HandleErr(err)
 		return
 	}
-	t, err := time.Parse("02/01/2006 15:04", c.Message.Text)
+	t, err := time.ParseInLocation("02/01/2006 15:04", c.Message.Text, time.Local)
+	t = t.In(time.UTC)
 	if err != nil {
-		// log.Printf("%v\n", err)
 		c.Reply(
 			text.W("Formato scadenza non valido!** Deve essere del tipo `gg/mm/aaaa hh:mm`"),
 			tb.ModeMarkdown,
