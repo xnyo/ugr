@@ -30,7 +30,7 @@ services:
       - DEBUG
       - USERNAME
       - DB_DRIVER=mysql
-      - DB_DSN=ugr:${MYSQL_PASSWORD}@tcp(mariadb:3306)/ugr?charset=utf8mb4&parseTime=true&loc=Local
+      - DB_DSN=ugr:${MYSQL_PASSWORD}@tcp(mariadb:3306)/ugr?charset=utf8mb4&parseTime=true&loc=${TZ}
   adminer:
     image: adminer
     container_name: adminer
