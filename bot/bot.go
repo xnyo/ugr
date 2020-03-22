@@ -45,6 +45,7 @@ func NewCtx(m *tb.Message, cb *tb.Callback, q *tb.Query) common.Ctx {
 		Callback:     cb,
 		InlineQuery:  q,
 		LogChannelID: Config.LogChannelID,
+		BotUsername:  Config.Username,
 		HasSentry:    hasSentry,
 	}
 }

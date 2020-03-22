@@ -24,6 +24,7 @@ type Ctx struct {
 	NoMenu      bool
 
 	LogChannelID string
+	BotUsername  string
 }
 
 // TelegramUser returns the user user who send the callback, or the user who sent the message

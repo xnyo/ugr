@@ -82,7 +82,7 @@ func handleInvite(c *common.Ctx, p privileges.Privileges) {
 			"👍 **Invito accettato!**",
 			tb.ModeMarkdown,
 			&tb.ReplyMarkup{
-				InlineKeyboard: [][]tb.InlineButton{{{Text: "🤖 Vai al bot", URL: "https://t.me/ugr27bot"}}},
+				InlineKeyboard: [][]tb.InlineButton{{{Text: "🤖 Vai al bot", URL: "https://t.me/" + c.BotUsername}}},
 			},
 		)
 	}
