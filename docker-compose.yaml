@@ -10,10 +10,10 @@ services:
     container_name: mariadb
     restart: unless-stopped
     environment:
-      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=ugr
       - MYSQL_USER=ugr
-      - MYSQL_PASSWORD=ugr
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - db:/var/lib/mysql
   bot:
@@ -28,6 +28,11 @@ services:
       - SENTRY_DSN
       - LOG_CHANNEL_ID
       - DB_DRIVER=mysql
-      - DB_DSN=ugr:ugr@tcp(mariadb:3306)/ugr?charset=utf8mb4&parseTime=true&loc=Local
+      - DB_DSN=ugr:${MYSQL_PASSWORD}@tcp(mariadb:3306)/ugr?charset=utf8mb4&parseTime=true&loc=Local
       - DEBUG=0
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    ports:
+      - 45677:8080
 
