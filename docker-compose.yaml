@@ -27,9 +27,10 @@ services:
       - TOKEN
       - SENTRY_DSN
       - LOG_CHANNEL_ID
+      - DEBUG
+      - USERNAME
       - DB_DRIVER=mysql
       - DB_DSN=ugr:${MYSQL_PASSWORD}@tcp(mariadb:3306)/ugr?charset=utf8mb4&parseTime=true&loc=Local
-      - DEBUG=0
   adminer:
     image: adminer
     container_name: adminer
