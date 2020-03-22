@@ -1,0 +1,32 @@
+version: '3'
+
+volumes:
+  db:
+    driver: local
+
+services:
+  mariadb:
+    image: mariadb:10.4.12-bionic
+    container_name: mariadb
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=ugr
+      - MYSQL_USER=ugr
+      - MYSQL_PASSWORD=ugr
+    volumes:
+      - db:/var/lib/mysql
+  bot:
+    build:
+      context: .
+    container_name: bot
+    depends_on:
+      - mariadb
+    environment:
+      - TOKEN
+      - SENTRY_DSN
+      - LOG_CHANNEL_ID
+      - DB_DRIVER=mysql
+      - DB_DSN=ugr:ugr@tcp(mariadb:3306)/ugr?charset=utf8mb4&parseTime=true&loc=Local
+      - DEBUG=0
+
