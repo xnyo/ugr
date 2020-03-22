@@ -6,5 +6,7 @@ RUN GOOS=linux go build -a -tags netgo -ldflags '-linkmode external -extldflags 
 FROM alpine:3 AS runtime
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
+COPY --from=build /usr/local/go/lib/time/zoneinfo.zip /
 COPY --from=build /go/src/github.com/xnyo/ugr/ugr ./
+ENV ZONEINFO=/zoneinfo.zip
 CMD ["./ugr"]
