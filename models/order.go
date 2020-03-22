@@ -76,16 +76,20 @@ func (o Order) ToTelegram(dbOrArea interface{}) (string, error) {
 	}
 
 	// Fetch expire (nullable)
-	var expire string
+	var expire, expiredWarning string
 	if o.Expire == nil {
 		expire = "Nessuna"
 	} else {
 		expire = o.Expire.Format("02/01/2006 15:04")
+		if o.Expire.Before(time.Now()) {
+			expiredWarning = "⚠️ <b>Attenzione! Questo ordine è scaduto.</b>\n\n"
+		}
 	}
 
 	// Format string
 	return fmt.Sprintf(
-		"🔸 Ordine per: %s\n🔸 Indirizzo: %s\n🔸 Zona: %s\n🔸 Telefono: %s\n🔸 Scadenza: %s\n🔸 Stato: %s\n🔸 Note:\n<code>%s</code>",
+		"%s🔸 Ordine per: %s\n🔸 Indirizzo: %s\n🔸 Zona: %s\n🔸 Telefono: %s\n🔸 Scadenza: %s\n🔸 Stato: %s\n🔸 Note:\n<code>%s</code>",
+		expiredWarning,
 		o.Name,
 		o.Address,
 		a.Name,
