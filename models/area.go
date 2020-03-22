@@ -6,7 +6,7 @@ import "github.com/jinzhu/gorm"
 type Area struct {
 	ID      uint
 	Name    string
-	Visible bool `gorm:"default:'true'"`
+	Visible bool `gorm:"default:'1'"`
 	Orders  []Order
 }
 
