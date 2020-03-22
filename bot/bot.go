@@ -143,8 +143,8 @@ func Initialize() error {
 	}
 
 	// Check db dsn (http://gorm.io/docs/connecting_to_the_database.html#MySQL)
-	if Config.DbDriver == "mysql" && !utils.ContainsAll(Config.DbDSN, []string{"parseTime=true", "charset=utf8mb4", "loc=Local"}) {
-		log.Fatal(errors.New("invalid dsn. it must contain parseTime=true&charset=utf8mb4&loc=Local"))
+	if Config.DbDriver == "mysql" && !utils.ContainsAll(Config.DbDSN, []string{"parseTime=true", "charset=utf8mb4"}) {
+		log.Fatal(errors.New("invalid dsn. it must contain parseTime=true&charset=utf8mb4"))
 	}
 
 	// Initialize telebot bot
